@@ -1,87 +1,150 @@
-package com.ieltsmastermind.practice.content.management.business.parser;
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-import com.ieltsmastermind.practice.content.management.domain.model.doc.DocNode;
-import org.junit.jupiter.api.Test;
+    <modelVersion>4.0.0</modelVersion>
 
-import java.util.List;
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.4</version>
+    </parent>
 
-public class InstructionParserImplTest {
+    <groupId>com.ieltsmastermind</groupId>
+    <artifactId>ielts-mastermind</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
 
-    // mvn -Dtest=InstructionParserImplTest#parseInstruction_showResult test
-    @Test
-    void parseInstruction_showResult() {
-        AttrsParser attrsParser = new AttrsParserImpl();
-        InlineParser inlineParser = new InlineParserImpl(attrsParser);
-        TableParser tableParser = new TableParserImpl(attrsParser, inlineParser);
+    <properties>
+        <java.version>17</java.version>
+    </properties>
 
-        ImageParser imageParser = new ImageParserImpl(attrsParser);
-        MultipleChoiceParser multipleChoiceParser = new MultipleChoiceParserImpl(attrsParser);
+    <dependencies>
 
-        InstructionParserImpl instructionParser = new InstructionParserImpl(
-                inlineParser,
-                tableParser,
-                imageParser,
-                multipleChoiceParser
-        );
+        <!-- Web (REST API) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
-        String input = "[f style=\"normal\" color=\"#0f172a\" size=\"22\" weight=\"800\"]Section 1[/f]\n" +
-                "\n" +
-                "[f style=\"normal\" color=\"#1d4ed8\" size=\"18\" weight=\"700\"]Questions 1-6[/f][f style=\"normal\" color=\"#0f172a\" size=\"14\" weight=\"400\"] Complete the form below.[/f]\n" +
-                "\n" +
-                "[f style=\"italic\" color=\"#0f172a\" size=\"14\" weight=\"600\"]Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.[/f]\n" +
-                "\n" +
-                "[table]\n" +
-                "[row]\n" +
-                "[cell][f style=\"normal\" color=\"#334155\" size=\"14\" weight=\"600\"]Survey reference number[/f][/cell]\n" +
-                "[cell][gap][/cell]\n" +
-                "[/row]\n" +
-                "[row]\n" +
-                "[cell][f style=\"normal\" color=\"#334155\" size=\"14\" weight=\"600\"]Name[/f][/cell]\n" +
-                "[cell][gap][/cell]\n" +
-                "[/row]\n" +
-                "[row]\n" +
-                "[cell][f style=\"normal\" color=\"#334155\" size=\"14\" weight=\"600\"]Postcode[/f][/cell]\n" +
-                "[cell][gap][/cell]\n" +
-                "[/row]\n" +
-                "[row]\n" +
-                "[cell][f style=\"normal\" color=\"#334155\" size=\"14\" weight=\"600\"]Main purpose of travel[/f][/cell]\n" +
-                "[cell][gap][/cell]\n" +
-                "[/row]\n" +
-                "[row]\n" +
-                "[cell][f style=\"normal\" color=\"#334155\" size=\"14\" weight=\"600\"]Usual time of travel (a.m./p.m.)[/f][/cell]\n" +
-                "[cell][gap][/cell]\n" +
-                "[/row]\n" +
-                "[row]\n" +
-                "[cell][f style=\"normal\" color=\"#334155\" size=\"14\" weight=\"600\"]Number of trips per week[/f][/cell]\n" +
-                "[cell][gap][/cell]\n" +
-                "[/row]\n" +
-                "[/table]\n" +
-                "\n" +
-                "[f style=\"normal\" color=\"#1d4ed8\" size=\"18\" weight=\"700\"]Question 7[/f][f style=\"normal\" color=\"#0f172a\" size=\"14\" weight=\"400\"] Look at the map image.[/f]\n" +
-                "\n" +
-                "[img src=\"https://www.gstatic.com/webp/gallery3/2.png\" alt=\"Transport map (sample)\" width=\"320\"]\n" +
-                "\n" +
-                "[f style=\"italic\" color=\"#0f172a\" size=\"14\" weight=\"600\"]Choose ONE answer.[/f]\n" +
-                "\n" +
-                "[multiple-choice pick=\"1\"]\n" +
-                "[option key=\"A\"]The bus stop is next to the library.[/option]\n" +
-                "[option key=\"B\"]The bus stop is opposite the supermarket.[/option]\n" +
-                "[option key=\"C\"]The bus stop is behind the station.[/option]\n" +
-                "[option key=\"D\"]The bus stop is beside the car park.[/option]\n" +
-                "[/multiple-choice]\n" +
-                "\n" +
-                "[f style=\"normal\" color=\"#1d4ed8\" size=\"18\" weight=\"700\"]Questions 8–10[/f][f style=\"normal\" color=\"#0f172a\" size=\"14\" weight=\"600\"] Choose THREE answers.[/f]\n" +
-                "\n" +
-                "[multiple-choice pick=\"3\"]\n" +
-                "[option key=\"A\"]Cheaper weekly tickets[/option]\n" +
-                "[option key=\"B\"]More frequent buses[/option]\n" +
-                "[option key=\"C\"]Longer operating hours[/option]\n" +
-                "[option key=\"D\"]Cleaner vehicles[/option]\n" +
-                "[option key=\"E\"]More routes to suburbs[/option]\n" +
-                "[/multiple-choice]";
+        <!-- WebClient (OpenAI calls) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
 
-        List<DocNode> result = instructionParser.parseInstruction(input);
+        <!-- JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
 
-        System.out.println(result);
-    }
-}
+        <!-- PostgreSQL (IMPORTANT) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- REMOVE MySQL (you are not using it anymore) -->
+        <!-- ❌ DELETE THIS -->
+        <!--
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+        -->
+
+        <!-- Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Mail -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- Security -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- OAuth2 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+        <!-- Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- JWT -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.ieltsmastermind.IeltsMastermindApplication</mainClass>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
