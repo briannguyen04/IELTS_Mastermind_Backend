@@ -1,14 +1,17 @@
-# Use an official JDK runtime as a parent image
-FROM openjdk:23-jdk-slim
+# Use stable Java (LTS)
+FROM eclipse-temurin:17-jdk-alpine
 
-# Set a working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy the built JAR file into the container
-COPY target/*.jar app.jar
+# Copy all files
+COPY . .
 
-# Expose the port Spring Boot runs on
+# Build the app
+RUN ./mvnw clean package -DskipTests
+
+# Expose port (Render uses PORT env anyway)
 EXPOSE 8080
 
-# Run the jar file
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the app
+CMD ["sh", "-c", "java -jar target/*.jar"]
