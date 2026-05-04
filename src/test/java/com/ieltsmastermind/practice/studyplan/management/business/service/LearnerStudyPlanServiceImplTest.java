@@ -1,5 +1,6 @@
 package com.ieltsmastermind.practice.studyplan.management.business.service;
 
+import com.ieltsmastermind.ai.feedback.business.interfaces.LearnerStudyPlanAIService;
 import com.ieltsmastermind.common.query.IncludeSpec;
 import com.ieltsmastermind.practice.analytics.management.business.interfaces.SubmissionAnalyticsService;
 import com.ieltsmastermind.practice.analytics.management.domain.entity.FocusTypeAnalytics;
@@ -28,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -55,6 +57,12 @@ class LearnerStudyPlanServiceImplTest {
 
     @Mock
     private SubmissionAnalyticsService submissionAnalyticsService;
+
+    @Mock
+    private LearnerStudyPlanAIService aiService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private IncludeSpec includes;
