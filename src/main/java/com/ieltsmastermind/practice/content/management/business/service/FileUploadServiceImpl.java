@@ -18,33 +18,37 @@ import static com.ieltsmastermind.common.constants.FileStorageConstants.*;
 @Service
 public class FileUploadServiceImpl implements FileUploadService {
 
-    // 25 MB
-    private static final long MAX_FILE_SIZE_BYTES = 25L * 1024 * 1024;
+    // 100 MB
+    private static final long MAX_FILE_SIZE_BYTES = 100L * 1024 * 1024;
 
     @Override
     public String uploadImage(MultipartFile file) {
+        if (isMissing(file)) {
+            return null;
+        }
+
         validateImage(file);
         return storeFile(file, IMAGE_UPLOAD_DIR, IMAGE_PUBLIC_BASE_PATH);
     }
 
     @Override
     public void deleteImageByUrl(FileDeleteRequestDto request) {
-        String imageUrl = request.getFileUrl();
+        String imageUrl = request != null ? request.getFileUrl() : null;
 
-        if (imageUrl == null || imageUrl.trim().isEmpty()) {
-            throw new RuntimeException("imageUrl is required");
+        if (isBlank(imageUrl)) {
+            return;
         }
 
         String filename = extractFilenameFromPublicUrl(imageUrl, IMAGE_PUBLIC_BASE_PATH);
+        if (isBlank(filename)) {
+            return;
+        }
 
         Path uploadPath = Paths.get(IMAGE_UPLOAD_DIR).toAbsolutePath().normalize();
         Path target = uploadPath.resolve(filename).normalize();
 
         try {
-            boolean deleted = Files.deleteIfExists(target);
-            if (!deleted) {
-                throw new RuntimeException("Image file not found");
-            }
+            Files.deleteIfExists(target);
         } catch (IOException e) {
             throw new RuntimeException("Failed to delete image", e);
         }
@@ -52,43 +56,52 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     @Override
     public String uploadThumbnail(MultipartFile file) {
-        validateThumbnail(file);
+        if (isMissing(file)) {
+            return null;
+        }
 
+        validateThumbnail(file);
         return storeFile(file, THUMBNAIL_UPLOAD_DIR, THUMBNAIL_PUBLIC_BASE_PATH);
     }
 
     @Override
     public String uploadAudio(MultipartFile file) {
-        validateAudio(file);
+        if (isMissing(file)) {
+            return null;
+        }
 
+        validateAudio(file);
         return storeFile(file, AUDIO_UPLOAD_DIR, AUDIO_PUBLIC_BASE_PATH);
     }
 
     @Override
     public String uploadAvatar(MultipartFile file) {
-        validateAvatar(file);
+        if (isMissing(file)) {
+            return null;
+        }
 
+        validateAvatar(file);
         return storeFile(file, AVATAR_UPLOAD_DIR, AVATAR_PUBLIC_BASE_PATH);
     }
 
     @Override
     public void deleteThumbnailByUrl(FileDeleteRequestDto request) {
-        String thumbnailUrl = request.getFileUrl();
+        String thumbnailUrl = request != null ? request.getFileUrl() : null;
 
-        if (thumbnailUrl == null || thumbnailUrl.trim().isEmpty()) {
-            throw new RuntimeException("thumbnailUrl is required");
+        if (isBlank(thumbnailUrl)) {
+            return;
         }
 
         String filename = extractFilenameFromPublicUrl(thumbnailUrl, THUMBNAIL_PUBLIC_BASE_PATH);
+        if (isBlank(filename)) {
+            return;
+        }
 
         Path uploadPath = Paths.get(THUMBNAIL_UPLOAD_DIR).toAbsolutePath().normalize();
         Path target = uploadPath.resolve(filename).normalize();
 
         try {
-            boolean deleted = Files.deleteIfExists(target);
-            if (!deleted) {
-                throw new RuntimeException("Thumbnail file not found");
-            }
+            Files.deleteIfExists(target);
         } catch (IOException e) {
             throw new RuntimeException("Failed to delete thumbnail", e);
         }
@@ -96,22 +109,22 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     @Override
     public void deleteAudioByUrl(FileDeleteRequestDto request) {
-        String audioUrl = request.getFileUrl();
+        String audioUrl = request != null ? request.getFileUrl() : null;
 
-        if (audioUrl == null || audioUrl.trim().isEmpty()) {
-            throw new RuntimeException("audioUrl is required");
+        if (isBlank(audioUrl)) {
+            return;
         }
 
         String filename = extractFilenameFromPublicUrl(audioUrl, AUDIO_PUBLIC_BASE_PATH);
+        if (isBlank(filename)) {
+            return;
+        }
 
         Path uploadPath = Paths.get(AUDIO_UPLOAD_DIR).toAbsolutePath().normalize();
         Path target = uploadPath.resolve(filename).normalize();
 
         try {
-            boolean deleted = Files.deleteIfExists(target);
-            if (!deleted) {
-                throw new RuntimeException("Audio file not found");
-            }
+            Files.deleteIfExists(target);
         } catch (IOException e) {
             throw new RuntimeException("Failed to delete audio file", e);
         }
@@ -119,41 +132,38 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     @Override
     public void deleteAvatarByUrl(FileDeleteRequestDto request) {
-        String avatarUrl = request.getFileUrl();
+        String avatarUrl = request != null ? request.getFileUrl() : null;
 
-        if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
-            throw new RuntimeException("avatarUrl is required");
+        if (isBlank(avatarUrl)) {
+            return;
         }
 
         String filename = extractFilenameFromPublicUrl(avatarUrl, AVATAR_PUBLIC_BASE_PATH);
+        if (isBlank(filename)) {
+            return;
+        }
 
         Path uploadPath = Paths.get(AVATAR_UPLOAD_DIR).toAbsolutePath().normalize();
         Path target = uploadPath.resolve(filename).normalize();
 
         try {
-            boolean deleted = Files.deleteIfExists(target);
-            if (!deleted) {
-                throw new RuntimeException("Avatar file not found");
-            }
-
+            Files.deleteIfExists(target);
         } catch (IOException e) {
             throw new RuntimeException("Failed to delete avatar", e);
         }
     }
 
+    private boolean isMissing(MultipartFile file) {
+        return file == null || file.isEmpty();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
     private void validateFileBase(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new RuntimeException("Empty file");
-        }
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
             throw new RuntimeException("File too large");
-        }
-
-        if (file.getOriginalFilename() == null || file.getOriginalFilename().trim().isEmpty()) {
-            throw new RuntimeException("Missing file name");
-        }
-        if (file.getContentType() == null || file.getContentType().trim().isEmpty()) {
-            throw new RuntimeException("Missing content type");
         }
     }
 
@@ -161,7 +171,7 @@ public class FileUploadServiceImpl implements FileUploadService {
         validateFileBase(file);
 
         String contentType = file.getContentType();
-        if (!Set.of("image/png", "image/jpeg", "image/webp").contains(contentType)) {
+        if (!isBlank(contentType) && !Set.of("image/png", "image/jpeg", "image/webp").contains(contentType)) {
             throw new RuntimeException("Invalid image type");
         }
     }
@@ -170,16 +180,16 @@ public class FileUploadServiceImpl implements FileUploadService {
         validateFileBase(file);
 
         String contentType = file.getContentType();
-         if (!Set.of("image/png", "image/jpeg", "image/webp").contains(contentType)) {
-             throw new RuntimeException("Invalid image type");
-         }
+        if (!isBlank(contentType) && !Set.of("image/png", "image/jpeg", "image/webp").contains(contentType)) {
+            throw new RuntimeException("Invalid image type");
+        }
     }
 
     private void validateAudio(MultipartFile file) {
         validateFileBase(file);
 
         String contentType = file.getContentType();
-        if (!Set.of("audio/mpeg", "audio/wav").contains(contentType)) {
+        if (!isBlank(contentType) && !Set.of("audio/mpeg", "audio/wav").contains(contentType)) {
             throw new RuntimeException("Invalid audio type");
         }
     }
@@ -188,15 +198,19 @@ public class FileUploadServiceImpl implements FileUploadService {
         validateFileBase(file);
 
         String contentType = file.getContentType();
-        if (!Set.of("image/png", "image/jpeg", "image/webp").contains(contentType)) {
+        if (!isBlank(contentType) && !Set.of("image/png", "image/jpeg", "image/webp").contains(contentType)) {
             throw new RuntimeException("Invalid image type");
         }
     }
 
     private String storeFile(MultipartFile file, String uploadDir, String publicBasePath) {
+        if (isMissing(file)) {
+            return null;
+        }
+
         try {
             String originalName = file.getOriginalFilename();
-            String safeName = (originalName != null ? originalName.replaceAll("\\s+", "_") : "file");
+            String safeName = !isBlank(originalName) ? originalName.replaceAll("\\s+", "_") : "file";
             String filename = UUID.randomUUID() + "-" + safeName;
 
             Path uploadPath = Paths.get(uploadDir);
@@ -212,8 +226,8 @@ public class FileUploadServiceImpl implements FileUploadService {
     }
 
     private String extractFilenameFromPublicUrl(String urlOrPath, String publicBasePath) {
-        if (urlOrPath == null) {
-            throw new RuntimeException("File Url is required");
+        if (isBlank(urlOrPath)) {
+            return null;
         }
 
         String path = urlOrPath.trim();
@@ -225,7 +239,7 @@ public class FileUploadServiceImpl implements FileUploadService {
         String filename = path.substring(publicBasePath.length());
 
         if (filename.isBlank()) {
-            throw new RuntimeException("File Url missing filename");
+            return null;
         }
 
         if (filename.contains("/") || filename.contains("\\") || filename.contains("..")) {

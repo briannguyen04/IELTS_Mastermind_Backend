@@ -1,7 +1,6 @@
 package com.ieltsmastermind.user.management.domain.entity;
 
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerAnalyticsSnapshot;
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerTrendSnapshot;
+import com.ieltsmastermind.practice.analytics.management.domain.entity.SubmissionAnalytics;
 import com.ieltsmastermind.practice.attempt.management.domain.entity.*;
 import com.ieltsmastermind.practice.studyplan.management.domain.entity.LearnerStudyPlan;
 import com.ieltsmastermind.user.management.domain.enums.AuthProvider;
@@ -102,13 +101,13 @@ public class User {
     @Column(name = "exam_date")
     private LocalDateTime examDate;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "user")
     private List<UserPracticeSubmission> practiceSubmissions = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "user")
     private List<UserPracticeContentProgress> practiceContentProgresses = new ArrayList<>();
 
-    @OneToMany(mappedBy = "author", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "author")
     private List<SubmissionFeedback> submissionFeedbacks = new ArrayList<>();
 
     @OneToMany(mappedBy = "tutor", cascade = CascadeType.REMOVE, orphanRemoval = true)
@@ -120,15 +119,11 @@ public class User {
     @OneToMany(mappedBy = "reviewedByUser", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<UserPracticeWritingReview> writingReviews = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    @OrderBy("calculatedAt DESC")
-    private List<LearnerAnalyticsSnapshot> learnerAnalyticsSnapshots = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    @OrderBy("calculatedAt DESC")
-    private List<LearnerTrendSnapshot> learnerTrendSnapshots = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "user")
     @OrderBy("createdAt DESC")
     private List<LearnerStudyPlan> learnerStudyPlans = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    @OrderBy("calculatedAt DESC")
+    private List<SubmissionAnalytics> submissionAnalytics = new ArrayList<>();
 }

@@ -1,10 +1,8 @@
 package com.ieltsmastermind.practice.studyplan.management.domain.entity;
 
-import com.ieltsmastermind.practice.analytics.management.domain.enums.AnalyticsConclusionLabel;
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeQuestionType;
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeTopicTag;
 import com.ieltsmastermind.practice.studyplan.management.domain.enums.LearnerStudyPlanFocusType;
-import com.ieltsmastermind.practice.studyplan.management.domain.enums.LearnerStudyPlanWeaknessBlockStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -48,14 +46,6 @@ public class LearnerStudyPlanWeaknessBlock {
     @Enumerated(EnumType.STRING)
     @Column(name = "topic_tag")
     private PracticeTopicTag topicTag;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private LearnerStudyPlanWeaknessBlockStatus status;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "analytics_conclusion_label", nullable = false)
-    private AnalyticsConclusionLabel analyticsConclusionLabel = AnalyticsConclusionLabel.BALANCED;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;

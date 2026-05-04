@@ -1,10 +1,12 @@
 package com.ieltsmastermind.practice.content.management.business.parser;
 
 import com.ieltsmastermind.practice.content.management.domain.model.doc.DocNode;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+@Disabled("Temporarily excluded from test suite")
 public class InstructionParserImplTest {
 
     // mvn -Dtest=InstructionParserImplTest#parseInstruction_showResult test

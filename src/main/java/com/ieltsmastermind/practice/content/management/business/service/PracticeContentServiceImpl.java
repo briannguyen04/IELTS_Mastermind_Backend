@@ -241,7 +241,15 @@ public class PracticeContentServiceImpl implements PracticeContentService {
                 fileUploadService.deleteImageByUrl(dto);
             }
         }
-        //  Let JPA cascade handle everything else
+
+        new ArrayList<>(content.getSubmissions())
+                .forEach(submission -> {
+                    submission.setPracticeContentId(null);
+                    submission.setPracticeContent(null);
+                });
+
+        practiceContentRepository.flush();
+
         practiceContentRepository.delete(content);
     }
 

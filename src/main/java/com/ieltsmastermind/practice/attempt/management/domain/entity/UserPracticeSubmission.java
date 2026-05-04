@@ -1,8 +1,6 @@
 package com.ieltsmastermind.practice.attempt.management.domain.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerAnalyticsSnapshot;
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerTrendSnapshotSubmission;
 import com.ieltsmastermind.practice.attempt.management.domain.enums.TutorStatus;
 import com.ieltsmastermind.practice.content.management.domain.entity.PracticeContent;
 import com.ieltsmastermind.practice.studyplan.management.domain.entity.LearnerStudyPlan;
@@ -28,14 +26,14 @@ public class UserPracticeSubmission {
     @Column(name = "user_practice_submission_id", nullable = false, updatable = false)
     private String id = UUID.randomUUID().toString();
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private String userId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tutor_status", nullable = false)
     private TutorStatus tutorStatus = TutorStatus.PENDING;
 
-    @Column(name = "practice_content_id", nullable = false)
+    @Column(name = "practice_content_id")
     private String practiceContentId;
 
     @Column(name = "time_spent_seconds", nullable = false)
@@ -87,46 +85,35 @@ public class UserPracticeSubmission {
     private PracticeContent practiceContent;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id",
-            insertable = false, updatable = false)
+    @JoinColumn(
+            name = "user_id",
+            referencedColumnName = "user_id",
+            insertable = false,
+            updatable = false)
     private User user;
 
-    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "submission")
     @OrderBy("orderIndex ASC")
     private List<UserPracticeSubmissionAnswer> answerRows = new ArrayList<>();
 
-    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "submission")
     @OrderBy("orderIndex ASC")
     private List<UserPracticeWritingAnswer> writingAnswers = new ArrayList<>();
 
-    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "submission")
     @OrderBy("createdAt ASC")
     private List<SubmissionFeedback> submissionFeedbacks = new ArrayList<>();
 
-    @OneToMany(mappedBy = "userPracticeSubmission", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "userPracticeSubmission")
     private List<TutorUserPracticeSubmission> tutorUserPracticeSubmissions = new ArrayList<>();
 
-    @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "submission")
     @OrderBy("questionType ASC")
     private List<SubmissionQuestionTypeAccuracy> questionTypeAccuracies = new ArrayList<>();
 
-    @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "submission")
     @OrderBy("topicTag ASC")
     private List<SubmissionTopicTagAccuracy> topicTagAccuracies = new ArrayList<>();
-
-    @ManyToMany(mappedBy = "submissions", fetch = FetchType.LAZY)
-    private Set<LearnerAnalyticsSnapshot> learnerAnalyticsSnapshots = new LinkedHashSet<>();
-
-    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    @OrderBy("submissionIndex ASC")
-    private List<LearnerTrendSnapshotSubmission> learnerTrendSnapshotSubmissions = new ArrayList<>();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "learner_study_plan_id",
-            referencedColumnName = "learner_study_plan_id"
-    )
-    private LearnerStudyPlan learnerStudyPlan;
 
     @PrePersist
     protected void onCreate() {

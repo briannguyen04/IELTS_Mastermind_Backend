@@ -6,7 +6,6 @@ import com.ieltsmastermind.common.response.ApiResponse;
 import com.ieltsmastermind.practice.attempt.management.business.interfaces.UserPracticeSubmissionService;
 import com.ieltsmastermind.practice.attempt.management.domain.dto.UserPracticeSubmissionCreateRequestDto;
 import com.ieltsmastermind.practice.attempt.management.domain.dto.UserPracticeSubmissionResponseDto;
-import com.ieltsmastermind.practice.attempt.management.domain.dto.UserPracticeSubmissionSkillCountResponseDto;
 import com.ieltsmastermind.practice.attempt.management.domain.dto.UserPracticeSubmissionUpdateRequestDto;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -157,28 +156,6 @@ public class UserPracticeSubmissionController {
 
             return ResponseEntity.ok(
                     ApiResponse.success("User practice submissions fetched successfully", submissions)
-            );
-        } catch (RuntimeException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(ApiResponse.fail(e.getMessage(), null));
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Internal server error"));
-        }
-    }
-
-    @GetMapping("/count-by-skill/user/{userId}")
-    public ResponseEntity<ApiResponse<UserPracticeSubmissionSkillCountResponseDto>> getSubmissionCountsBySkillAndUserId(
-            @PathVariable String userId
-    ) {
-        try {
-            UserPracticeSubmissionSkillCountResponseDto data =
-                    userPracticeSubmissionService.getSubmissionCountsBySkillAndUserId(userId);
-
-            return ResponseEntity.ok(
-                    ApiResponse.success("User practice submission counts by skill fetched successfully", data)
             );
         } catch (RuntimeException e) {
             return ResponseEntity

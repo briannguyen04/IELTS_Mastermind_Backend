@@ -37,23 +37,6 @@ public interface UserPracticeSubmissionRepository extends JpaRepository<UserPrac
             PracticeContentSkill skill
     );
 
-    @Query("""
-    SELECT pc.skill AS skill, COUNT(ups.id) AS submissionCount
-    FROM UserPracticeSubmission ups
-    JOIN ups.practiceContent pc
-    WHERE ups.userId = :userId
-      AND (
-          pc.skill <> :writingSkill
-          OR ups.tutorStatus = :completedTutorStatus
-      )
-    GROUP BY pc.skill
-""")
-    List<UserPracticeSubmissionSkillCountProjection> countSubmissionsBySkillAndUserId(
-            @Param("userId") String userId,
-            @Param("writingSkill") PracticeContentSkill writingSkill,
-            @Param("completedTutorStatus") TutorStatus completedTutorStatus
-    );
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM UserPracticeSubmission s WHERE s.id = :id")
     Optional<UserPracticeSubmission> findByIdForUpdate(@Param("id") String id);

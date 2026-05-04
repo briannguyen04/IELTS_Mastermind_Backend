@@ -1,15 +1,14 @@
 package com.ieltsmastermind.ai.feedback.business.service.LearnerStudyPlanAIService;
 
 import com.ieltsmastermind.ai.feedback.business.interfaces.LearnerStudyPlanAIService;
+import com.ieltsmastermind.ai.feedback.business.service.LearnerStudyPlanAIService.LearnerStudyPlanAIUpdater;
+import com.ieltsmastermind.ai.feedback.business.service.LearnerStudyPlanAIService.OpenAIClient;
 import com.ieltsmastermind.ai.feedback.domain.dto.StudyPlanAIResponse;
 import com.ieltsmastermind.ai.feedback.domain.dto.TaskInput;
-import com.ieltsmastermind.ai.feedback.domain.dto.TaskOutput;
 import com.ieltsmastermind.ai.feedback.domain.entity.AIInput;
-import com.ieltsmastermind.ai.feedback.domain.entity.AIOutput;
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerQuestionTypeAnalytics;
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerTopicTagAnalytics;
-import com.ieltsmastermind.practice.analytics.management.persistence.LearnerQuestionTypeAnalyticsRepository;
-import com.ieltsmastermind.practice.analytics.management.persistence.LearnerTopicTagAnalyticsRepository;
+import com.ieltsmastermind.practice.analytics.management.domain.entity.FocusTypeAnalytics;
+import com.ieltsmastermind.practice.analytics.management.domain.entity.SubmissionAnalytics;
+import com.ieltsmastermind.practice.content.management.domain.enums.PracticeContentSkill;
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeQuestionType;
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeTopicTag;
 import com.ieltsmastermind.practice.studyplan.management.domain.entity.LearnerStudyPlan;
@@ -21,12 +20,19 @@ import com.ieltsmastermind.practice.studyplan.management.persistence.LearnerStud
 import com.ieltsmastermind.practice.studyplan.management.persistence.LearnerStudyPlanStrengthBlockRepository;
 import com.ieltsmastermind.practice.studyplan.management.persistence.LearnerStudyPlanTaskRepository;
 import com.ieltsmastermind.practice.studyplan.management.persistence.LearnerStudyPlanWeaknessBlockRepository;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -39,20 +45,24 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
     private final LearnerStudyPlanTaskRepository taskRepository;
     private final LearnerStudyPlanStrengthBlockRepository strengthRepository;
     private final LearnerStudyPlanWeaknessBlockRepository weaknessRepository;
-    private final LearnerQuestionTypeAnalyticsRepository questionTypeAnalyticsRepository;
-    private final LearnerTopicTagAnalyticsRepository topicTagAnalyticsRepository;
     private final LearnerStudyPlanAIUpdater updater;
 
     @Override
+    @Transactional
     public void triggerAIContentGeneration(String studyPlanId) {
 
         // 1. Load study plan
         LearnerStudyPlan studyPlan = studyPlanRepository.findById(studyPlanId)
-                .orElseThrow();
+                .orElseThrow(() -> new RuntimeException("Study plan not found"));
 
-        String snapshotId = Optional.ofNullable(studyPlan.getLearnerAnalyticsSnapshot())
-                .map(s -> s.getId())
-                .orElseThrow(() -> new RuntimeException("Snapshot not found"));
+
+
+        SubmissionAnalytics submissionAnalytics = Optional.ofNullable(studyPlan.getSubmissionAnalytics())
+                .orElseThrow(() -> new RuntimeException("Submission analytics not found"));
+
+        boolean isWriting = studyPlan.getSkill() == PracticeContentSkill.WRITING;
+
+
 
         // 2. Load blocks
         List<LearnerStudyPlanWeaknessBlock> weaknesses =
@@ -61,7 +71,6 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
         List<LearnerStudyPlanStrengthBlock> strengths =
                 strengthRepository.findStrengthBlocksByStudyPlanId(studyPlanId);
 
-
         // 3. Extract focus
         Set<PracticeQuestionType> questionTypes = new HashSet<>();
         Set<PracticeTopicTag> topicTags = new HashSet<>();
@@ -69,65 +78,86 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
         extractFocusFromWeakness(weaknesses, questionTypes, topicTags);
         extractFocusFromStrength(strengths, questionTypes, topicTags);
 
-        List<PracticeQuestionType> questionTypeList = new ArrayList<>(questionTypes);
-        List<PracticeTopicTag> topicTagList = new ArrayList<>(topicTags);
+        // 4. Load analytics from FocusTypeAnalytics
+        Map<PracticeQuestionType, FocusTypeAnalytics> questionAnalyticsMap =
+                buildQuestionTypeAnalyticsMap(submissionAnalytics, questionTypes);
 
-        // 4. Load analytics
-        Map<PracticeQuestionType, LearnerQuestionTypeAnalytics> questionAnalyticsMap =
-                questionTypeList.isEmpty()
-                        ? Collections.emptyMap()
-                        : questionTypeAnalyticsRepository
-                        .findByLearnerAnalyticsSnapshot_IdAndQuestionTypeIn(snapshotId, questionTypeList)
-                        .stream()
-                        .collect(Collectors.toMap(
-                                LearnerQuestionTypeAnalytics::getQuestionType,
-                                Function.identity()
-                        ));
-
-        Map<PracticeTopicTag, LearnerTopicTagAnalytics> topicAnalyticsMap =
-                topicTagList.isEmpty()
-                        ? Collections.emptyMap()
-                        : topicTagAnalyticsRepository
-                        .findByLearnerAnalyticsSnapshot_IdAndTopicTagIn(snapshotId, topicTagList)
-                        .stream()
-                        .collect(Collectors.toMap(
-                                LearnerTopicTagAnalytics::getTopicTag,
-                                Function.identity()
-                        ));
+        Map<PracticeTopicTag, FocusTypeAnalytics> topicAnalyticsMap =
+                buildTopicTagAnalyticsMap(submissionAnalytics, topicTags);
 
         // 5. Build AI input
         List<AIInput> inputs = buildAIInputs(
                 weaknesses,
                 strengths,
                 questionAnalyticsMap,
-                topicAnalyticsMap
+                topicAnalyticsMap,
+                isWriting
         );
 
         List<AIInput> weaknessInputs = inputs.stream()
-                .filter(i -> i.getType().equals("WEAKNESS"))
+                .filter(i -> "WEAKNESS".equals(i.getType()))
                 .toList();
 
         List<AIInput> strengthInputs = inputs.stream()
-                .filter(i -> i.getType().equals("STRENGTH"))
+                .filter(i -> "STRENGTH".equals(i.getType()))
                 .toList();
 
-// tasks phải build riêng (quan trọng)
-        List<TaskInput>  taskInputs = buildTaskInputs(studyPlanId);
+        // Tasks must be built separately
+        List<TaskInput> taskInputs = buildTaskInputs(studyPlanId);
 
-
-        // 6. Call AI (batch)
-        StudyPlanAIResponse res = aiClient.generateWithRetry(
+        // 6. Call AI batch generation
+        StudyPlanAIResponse response = aiClient.generateWithRetry(
                 weaknessInputs,
                 strengthInputs,
-                taskInputs
+                taskInputs,
+                isWriting
         );
 
 
-
-        updater.saveAIResult(studyPlanId, res);
+        updater.saveAIResult(studyPlanId, response);
     }
 
+    private Map<PracticeQuestionType, FocusTypeAnalytics> buildQuestionTypeAnalyticsMap(
+            SubmissionAnalytics submissionAnalytics,
+            Set<PracticeQuestionType> questionTypes
+    ) {
+        if (questionTypes.isEmpty()) {
+            return Collections.emptyMap();
+        }
 
+        return submissionAnalytics.getFocusTypeAnalytics()
+                .stream()
+                .filter(analytics -> analytics.getFocusType() == LearnerStudyPlanFocusType.QUESTION_TYPE)
+                .filter(analytics -> analytics.getQuestionType() != null)
+                .filter(analytics -> questionTypes.contains(analytics.getQuestionType()))
+                .collect(Collectors.toMap(
+                        FocusTypeAnalytics::getQuestionType,
+                        Function.identity(),
+                        (existing, replacement) -> existing,
+                        HashMap::new
+                ));
+    }
+
+    private Map<PracticeTopicTag, FocusTypeAnalytics> buildTopicTagAnalyticsMap(
+            SubmissionAnalytics submissionAnalytics,
+            Set<PracticeTopicTag> topicTags
+    ) {
+        if (topicTags.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return submissionAnalytics.getFocusTypeAnalytics()
+                .stream()
+                .filter(analytics -> analytics.getFocusType() != LearnerStudyPlanFocusType.QUESTION_TYPE)
+                .filter(analytics -> analytics.getTopicTag() != null)
+                .filter(analytics -> topicTags.contains(analytics.getTopicTag()))
+                .collect(Collectors.toMap(
+                        FocusTypeAnalytics::getTopicTag,
+                        Function.identity(),
+                        (existing, replacement) -> existing,
+                        HashMap::new
+                ));
+    }
 
     private void extractFocusFromWeakness(
             List<LearnerStudyPlanWeaknessBlock> blocks,
@@ -136,9 +166,13 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
     ) {
         for (LearnerStudyPlanWeaknessBlock block : blocks) {
             if (block.getFocusType() == LearnerStudyPlanFocusType.QUESTION_TYPE) {
-                questionTypes.add(block.getQuestionType());
+                if (block.getQuestionType() != null) {
+                    questionTypes.add(block.getQuestionType());
+                }
             } else {
-                topicTags.add(block.getTopicTag());
+                if (block.getTopicTag() != null) {
+                    topicTags.add(block.getTopicTag());
+                }
             }
         }
     }
@@ -150,9 +184,13 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
     ) {
         for (LearnerStudyPlanStrengthBlock block : blocks) {
             if (block.getFocusType() == LearnerStudyPlanFocusType.QUESTION_TYPE) {
-                questionTypes.add(block.getQuestionType());
+                if (block.getQuestionType() != null) {
+                    questionTypes.add(block.getQuestionType());
+                }
             } else {
-                topicTags.add(block.getTopicTag());
+                if (block.getTopicTag() != null) {
+                    topicTags.add(block.getTopicTag());
+                }
             }
         }
     }
@@ -160,17 +198,28 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
     private List<AIInput> buildAIInputs(
             List<LearnerStudyPlanWeaknessBlock> weaknesses,
             List<LearnerStudyPlanStrengthBlock> strengths,
-            Map<PracticeQuestionType, LearnerQuestionTypeAnalytics> qMap,
-            Map<PracticeTopicTag, LearnerTopicTagAnalytics> tMap
+            Map<PracticeQuestionType, FocusTypeAnalytics> questionAnalyticsMap,
+            Map<PracticeTopicTag, FocusTypeAnalytics> topicAnalyticsMap,
+            boolean isWriting
     ) {
         List<AIInput> inputs = new ArrayList<>();
 
-        for (LearnerStudyPlanWeaknessBlock w : weaknesses) {
-            inputs.add(buildWeaknessInput(w, qMap, tMap));
+        for (LearnerStudyPlanWeaknessBlock weakness : weaknesses) {
+            inputs.add(buildWeaknessInput(
+                    weakness,
+                    questionAnalyticsMap,
+                    topicAnalyticsMap,
+                    isWriting
+            ));
         }
 
-        for (LearnerStudyPlanStrengthBlock s : strengths) {
-            inputs.add(buildStrengthInput(s, qMap, tMap));
+        for (LearnerStudyPlanStrengthBlock strength : strengths) {
+            inputs.add(buildStrengthInput(
+                    strength,
+                    questionAnalyticsMap,
+                    topicAnalyticsMap,
+                    isWriting
+            ));
         }
 
         return inputs;
@@ -182,13 +231,13 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
 
         List<TaskInput> inputs = new ArrayList<>();
 
-        for (var t : tasks) {
+        for (LearnerStudyPlanTask task : tasks) {
             inputs.add(new TaskInput(
-                    t.getId(),
-                    t.getFocusType(),
-                    t.getQuestionType(),
-                    t.getTopicTag(),
-                    t.getDirection()
+                    task.getId(),
+                    task.getFocusType(),
+                    task.getQuestionType(),
+                    task.getTopicTag(),
+                    task.getDirection()
             ));
         }
 
@@ -197,8 +246,9 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
 
     private AIInput buildWeaknessInput(
             LearnerStudyPlanWeaknessBlock block,
-            Map<PracticeQuestionType, LearnerQuestionTypeAnalytics> qMap,
-            Map<PracticeTopicTag, LearnerTopicTagAnalytics> tMap
+            Map<PracticeQuestionType, FocusTypeAnalytics> questionAnalyticsMap,
+            Map<PracticeTopicTag, FocusTypeAnalytics> topicAnalyticsMap,
+            boolean isWriting
     ) {
         return buildInputCommon(
                 block.getId(),
@@ -206,15 +256,17 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
                 block.getFocusType(),
                 block.getQuestionType(),
                 block.getTopicTag(),
-                qMap,
-                tMap
+                questionAnalyticsMap,
+                topicAnalyticsMap,
+                isWriting
         );
     }
 
     private AIInput buildStrengthInput(
             LearnerStudyPlanStrengthBlock block,
-            Map<PracticeQuestionType, LearnerQuestionTypeAnalytics> qMap,
-            Map<PracticeTopicTag, LearnerTopicTagAnalytics> tMap
+            Map<PracticeQuestionType, FocusTypeAnalytics> questionAnalyticsMap,
+            Map<PracticeTopicTag, FocusTypeAnalytics> topicAnalyticsMap,
+            boolean isWriting
     ) {
         return buildInputCommon(
                 block.getId(),
@@ -222,8 +274,9 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
                 block.getFocusType(),
                 block.getQuestionType(),
                 block.getTopicTag(),
-                qMap,
-                tMap
+                questionAnalyticsMap,
+                topicAnalyticsMap,
+                isWriting
         );
     }
 
@@ -233,26 +286,29 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
             LearnerStudyPlanFocusType focusType,
             PracticeQuestionType questionType,
             PracticeTopicTag topicTag,
-            Map<PracticeQuestionType, LearnerQuestionTypeAnalytics> qMap,
-            Map<PracticeTopicTag, LearnerTopicTagAnalytics> tMap
+            Map<PracticeQuestionType, FocusTypeAnalytics> questionAnalyticsMap,
+            Map<PracticeTopicTag, FocusTypeAnalytics> topicAnalyticsMap,
+            boolean isWriting
     ) {
-        double correctRate = 0;
-        double effectiveAccuracy = 0;
-        double skipRate = 0;
+        double metricValue = 0.0;
+
+        FocusTypeAnalytics analytics;
 
         if (focusType == LearnerStudyPlanFocusType.QUESTION_TYPE) {
-            var analytics = qMap.get(questionType);
-            if (analytics != null) {
-                correctRate = analytics.getRollingCorrectAnswerPercentage();
-                effectiveAccuracy = analytics.getRollingEffectiveAccuracy();
-                skipRate = analytics.getRollingSkipRate();
-            }
+            analytics = questionAnalyticsMap.get(questionType);
         } else {
-            var analytics = tMap.get(topicTag);
-            if (analytics != null) {
-                correctRate = analytics.getRollingCorrectAnswerPercentage();
-                effectiveAccuracy = analytics.getRollingEffectiveAccuracy();
-                skipRate = analytics.getRollingSkipRate();
+            analytics = topicAnalyticsMap.get(topicTag);
+        }
+
+        if (analytics != null) {
+            if (isWriting) {
+                metricValue = safeDouble(
+                        analytics.getRollingOverallBandScore()
+                );
+            } else {
+                metricValue = safeDouble(
+                        analytics.getRollingCorrectAnswerPercentage()
+                );
             }
         }
 
@@ -262,9 +318,11 @@ public class LearnerStudyPlanAIServiceImpl implements LearnerStudyPlanAIService 
                 focusType,
                 questionType,
                 topicTag,
-                correctRate,
-                effectiveAccuracy,
-                skipRate
+                metricValue
         );
+    }
+
+    private double safeDouble(Double value) {
+        return value == null ? 0.0 : value;
     }
 }

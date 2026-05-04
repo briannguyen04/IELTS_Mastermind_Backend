@@ -76,12 +76,13 @@ public class OpenAIClient {
     public StudyPlanAIResponse generateWithRetry(
             List<AIInput> weaknesses,
             List<AIInput> strengths,
-            List<TaskInput> tasks
+            List<TaskInput> tasks,
+            Boolean isWriting
     ) {
         int maxAttempts = 3;
         int attempt = 0;
 
-        String prompt = buildFullPrompt(weaknesses, strengths, tasks);
+        String prompt = buildFullPrompt(weaknesses, strengths, tasks, isWriting);
 
         while (attempt < maxAttempts) {
             try {
@@ -139,9 +140,31 @@ public class OpenAIClient {
     private String buildFullPrompt(
             List<AIInput> weaknesses,
             List<AIInput> strengths,
-            List<TaskInput> tasks
+            List<TaskInput> tasks,
+            boolean isWriting
     ) {
         try {
+
+            String metricName = isWriting
+                    ? "overallBandScore"
+                    : "correctRate";
+
+            String metricExplanation = isWriting
+                    ? """
+- overallBandScore: learner's overall writing tutor band score
+
+Interpretation:
+- Low overallBandScore → weak writing performance and language control
+- High overallBandScore → strong writing ability and better task achievement
+"""
+                    : """
+- correctRate: ratio of (correct answers / total questions attempted)
+
+Interpretation:
+- Low correctRate → overall weak understanding
+- High correctRate → strong overall mastery
+""";
+
             String prompt = """
 You are a senior IELTS coach and learning strategist.
 
@@ -155,7 +178,7 @@ SYSTEM CONTEXT (IMPORTANT)
 
 The platform tracks learner performance across:
 
-- QUESTION TYPES (e.g. MATCHING, SENTENCE_COMPLETION, MAP_LABELING)
+- QUESTION TYPES 
 - TOPIC TAGS (e.g. EDUCATION, ENVIRONMENT, TECHNOLOGY)
 
 Each learner has:
@@ -175,24 +198,14 @@ Each item contains:
 - id: unique identifier (MUST be preserved)
 - focusType: QUESTION_TYPE or TOPIC
 - questionType / topicTag
-- correctRate: ratio of (correct answers / total questions attempted)
-- effectiveAccuracy: ratio of (correct answers / non-skipped questions only)
-- skipRate: percentage of skipped questions
+- %s
 
-Interpretation:
-- Low correctRate → overall weak understanding
-- High skipRate → avoidance, confusion, or lack of confidence
-- Low effectiveAccuracy → inconsistent performance even when attempting questions
+%s
 
 ------------------------------------
 
 2. STRENGTHS
 Same structure as weaknesses.
-
-Interpretation:
-- High correctRate → strong overall mastery
-- High effectiveAccuracy → stable and reliable performance
-- Low skipRate → confident engagement
 
 ------------------------------------
 
@@ -223,7 +236,7 @@ YOUR GOALS
 For each weakness:
 - Identify the core issue
 - Explain WHY the learner struggles
-- Use correctRate, effectiveAccuracy, skipRate as evidence
+- Use %s as evidence
 - Provide actionable improvement strategy
 
 ------------------------------------
@@ -307,12 +320,13 @@ STRENGTHS:
 TASKS:
 %s
 """.formatted(
+                    metricName,
+                    metricExplanation,
+                    metricName,
                     objectMapper.writeValueAsString(weaknesses),
                     objectMapper.writeValueAsString(strengths),
                     objectMapper.writeValueAsString(tasks)
             );
-
-
 
             return prompt;
 

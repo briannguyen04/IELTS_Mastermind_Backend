@@ -54,7 +54,7 @@ public class LearnerStudyPlanController {
             IncludeSpec includes = IncludeParser.parse(include);
 
             LearnerStudyPlanResponseDto studyPlan =
-                    learnerStudyPlanService.getActiveByUserIdAndSkill(userId, skill, includes);
+                    learnerStudyPlanService.getActiveStudyPlanByUserIdAndSkill(userId, skill, includes);
 
             return ResponseEntity.ok(
                     ApiResponse.success("Active study plan fetched successfully", studyPlan)
@@ -77,7 +77,7 @@ public class LearnerStudyPlanController {
     ) {
         try {
             LearnerStudyPlanActiveCheckResponseDto response =
-                    learnerStudyPlanService.checkHasActiveStudyPlan(userId, skill);
+                    learnerStudyPlanService.getHasActiveStudyPlan(userId, skill);
 
             return ResponseEntity.ok(
                     ApiResponse.success("Active learner study plan status fetched successfully", response)
@@ -98,7 +98,7 @@ public class LearnerStudyPlanController {
             @PathVariable String id
     ) {
         try {
-            LearnerStudyPlanResponseDto finalized = learnerStudyPlanService.finalizeById(id);
+            LearnerStudyPlanResponseDto finalized = learnerStudyPlanService.finalizeStudyPlanById(id);
             return ResponseEntity
                     .ok(ApiResponse.success("Learner study plan finalized successfully", finalized));
         } catch (RuntimeException e) {
@@ -112,18 +112,18 @@ public class LearnerStudyPlanController {
         }
     }
 
-    @PutMapping("/user/{userId}/skill/{skill}/refresh-after-submission")
-    public ResponseEntity<ApiResponse<LearnerStudyPlanRefreshAfterSubmissionResponseDto>> refreshAfterSubmission(
+    @PutMapping("/user/{userId}/skill/{skill}/refresh")
+    public ResponseEntity<ApiResponse<LearnerStudyPlanResponseDto>> refreshStudyPlan(
             @PathVariable String userId,
             @PathVariable PracticeContentSkill skill
     ) {
         try {
-            LearnerStudyPlanRefreshAfterSubmissionResponseDto refreshed =
-                    learnerStudyPlanService.refreshAfterSubmission(userId, skill);
+            LearnerStudyPlanResponseDto refreshed =
+                    learnerStudyPlanService.refreshStudyPlan(userId, skill);
 
             return ResponseEntity.ok(
                     ApiResponse.success(
-                            "Learner analytics, trend snapshot, and study plan refreshed successfully",
+                            "Learner analytics and study plan refreshed successfully",
                             refreshed
                     )
             );

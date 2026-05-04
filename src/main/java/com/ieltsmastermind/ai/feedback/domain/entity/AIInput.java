@@ -15,6 +15,4 @@ public class AIInput {
     private PracticeQuestionType questionType;
     private PracticeTopicTag topicTag;
     private double correctRate;
-    private double effectiveAccuracy;
-    private double skipRate;
 }

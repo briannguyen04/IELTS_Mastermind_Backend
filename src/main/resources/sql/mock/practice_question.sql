@@ -1,122 +1,104 @@
+USE ielts_mastermind_db;
+
+SET @practice_content_id = 'cafa853c-1323-410a-a407-c1ef23b72c56';
+
 START TRANSACTION;
 
-SET @practiceContentId = '8143c599-5862-4513-b2c0-2c1ecf0a7471';
+DROP TEMPORARY TABLE IF EXISTS tmp_practice_questions;
 
-SET @q2 = UUID();
-SET @q3 = UUID();
-SET @q4 = UUID();
-SET @q5 = UUID();
-SET @q6 = UUID();
-SET @q7 = UUID();
-SET @q8 = UUID();
-SET @q9 = UUID();
-SET @q10 = UUID();
-SET @q11 = UUID();
-SET @q12 = UUID();
-SET @q13 = UUID();
-SET @q14 = UUID();
-SET @q15 = UUID();
-SET @q16 = UUID();
-SET @q17 = UUID();
-SET @q18 = UUID();
-SET @q19 = UUID();
-SET @q20 = UUID();
+DELETE pqa
+FROM practice_question_answer pqa
+JOIN practice_question pq
+    ON pqa.practice_question_id = pq.practice_question_id
+WHERE pq.practice_content_id = @practice_content_id;
 
-INSERT INTO ielts_mastermind_db.practice_question (
-  practice_question_id,
-  order_index,
-  type,
-  topic_tag,
-  practice_content_id
-) VALUES
-(@q2,  2,  'FORM_COMPLETION',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
-(@q3,  3,  'FORM_COMPLETION',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
-(@q4,  4,  'FORM_COMPLETION',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
-(@q5,  5,  'FORM_COMPLETION',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
-(@q6,  6,  'FORM_COMPLETION',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
+DELETE FROM practice_question
+WHERE practice_content_id = @practice_content_id;
 
-(@q7,  7,  'MULTIPLE_CHOICE',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
+CREATE TEMPORARY TABLE tmp_practice_questions AS
+WITH RECURSIVE seq(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1
+    FROM seq
+    WHERE n < 40
+)
+SELECT
+    UUID() AS practice_question_id,
+    n AS order_index,
+    ELT(
+        FLOOR(1 + RAND() * 12),
+        'MULTIPLE_CHOICE',
+        'MATCHING',
+        'PLAN_LABELLING',
+        'MAP_LABELLING',
+        'DIAGRAM_LABELLING',
+        'FORM_COMPLETION',
+        'NOTE_COMPLETION',
+        'TABLE_COMPLETION',
+        'FLOW_CHART_COMPLETION',
+        'SUMMARY_COMPLETION',
+        'SENTENCE_COMPLETION',
+        'SHORT_ANSWER_QUESTIONS'
+    ) AS type,
+    ELT(
+        FLOOR(1 + RAND() * 22),
+        'EDUCATION_AND_LEARNING',
+        'WORK_JOBS_AND_CAREERS',
+        'TECHNOLOGY_INTERNET_AND_AI',
+        'HEALTH_HEALTHCARE_AND_LIFESTYLE',
+        'ENVIRONMENT_CLIMATE_AND_SUSTAINABILITY',
+        'GOVERNMENT_LAW_AND_PUBLIC_POLICY',
+        'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES',
+        'FAMILY_CHILDREN_AND_AGEING',
+        'MEDIA_ADVERTISING_AND_COMMUNICATION',
+        'CULTURE_ART_TRADITIONS_AND_LANGUAGE',
+        'TRAVEL_TOURISM_AND_TRANSPORT',
+        'HOUSING_CITIES_AND_URBAN_RURAL_LIFE',
+        'SCIENCE_RESEARCH_AND_INNOVATION',
+        'BUSINESS_ECONOMY_AND_CONSUMER_BEHAVIOR',
+        'FOOD_AGRICULTURE_AND_FARMING',
+        'SPORT_LEISURE_AND_HOBBIES',
+        'HISTORY_ARCHAEOLOGY_AND_HERITAGE',
+        'ENERGY_NATURAL_RESOURCES_AND_INFRASTRUCTURE',
+        'CRIME_SAFETY_AND_SECURITY',
+        'GLOBALISATION_MIGRATION_AND_INTERNATIONAL_DEVELOPMENT',
+        'POPULATION_AND_DEMOGRAPHICS',
+        'ANIMALS_AND_WILDLIFE'
+    ) AS topic_tag,
+    @practice_content_id AS practice_content_id
+FROM seq;
 
-(@q8,  8,  'MULTIPLE_CHOICE',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
-(@q9,  9,  'MULTIPLE_CHOICE',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
-(@q10, 10, 'MULTIPLE_CHOICE',   'TRAVEL_TOURISM_AND_TRANSPORT', @practiceContentId),
+INSERT INTO practice_question (
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+)
+SELECT
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+FROM tmp_practice_questions;
 
-(@q11, 11, 'NOTE_COMPLETION',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
-(@q12, 12, 'NOTE_COMPLETION',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
-(@q13, 13, 'NOTE_COMPLETION',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
-(@q14, 14, 'NOTE_COMPLETION',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
-(@q15, 15, 'NOTE_COMPLETION',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
+INSERT INTO practice_question_answer (
+    practice_question_id,
+    answer_index,
+    answer_value
+)
+SELECT
+    practice_question_id,
+    0,
+    'A'
+FROM tmp_practice_questions;
 
-(@q16, 16, 'MULTIPLE_CHOICE',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
-(@q17, 17, 'MULTIPLE_CHOICE',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
-(@q18, 18, 'MULTIPLE_CHOICE',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
-(@q19, 19, 'MULTIPLE_CHOICE',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId),
-(@q20, 20, 'MULTIPLE_CHOICE',   'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES', @practiceContentId);
+UPDATE practice_content
+SET question_count = 40
+WHERE practice_content_id = @practice_content_id;
 
-INSERT INTO ielts_mastermind_db.practice_question_answer (
-  practice_question_id,
-  answer_index,
-  answer_value
-) VALUES
--- Questions 2–6: gap filling answers
-(@q2,  0, 'T'),
-(@q3,  0, 'T'),
-(@q4,  0, 'T'),
-(@q5,  0, 'T'),
-(@q6,  0, 'T'),
-
--- Question 7: single choice
-(@q7,  0, 'A'),
-
--- Questions 8–10: pick 3, same answer set for all related questions
-(@q8,  0, 'A'),
-(@q8,  1, 'B'),
-(@q8,  2, 'C'),
-
-(@q9,  0, 'A'),
-(@q9,  1, 'B'),
-(@q9,  2, 'C'),
-
-(@q10, 0, 'A'),
-(@q10, 1, 'B'),
-(@q10, 2, 'C'),
-
--- Questions 11–15: gap filling answers
-(@q11, 0, 'T'),
-(@q12, 0, 'T'),
-(@q13, 0, 'T'),
-(@q14, 0, 'T'),
-(@q15, 0, 'T'),
-
--- Questions 16–20: pick 5, same answer set for all related questions
-(@q16, 0, 'A'),
-(@q16, 1, 'B'),
-(@q16, 2, 'C'),
-(@q16, 3, 'D'),
-(@q16, 4, 'E'),
-
-(@q17, 0, 'A'),
-(@q17, 1, 'B'),
-(@q17, 2, 'C'),
-(@q17, 3, 'D'),
-(@q17, 4, 'E'),
-
-(@q18, 0, 'A'),
-(@q18, 1, 'B'),
-(@q18, 2, 'C'),
-(@q18, 3, 'D'),
-(@q18, 4, 'E'),
-
-(@q19, 0, 'A'),
-(@q19, 1, 'B'),
-(@q19, 2, 'C'),
-(@q19, 3, 'D'),
-(@q19, 4, 'E'),
-
-(@q20, 0, 'A'),
-(@q20, 1, 'B'),
-(@q20, 2, 'C'),
-(@q20, 3, 'D'),
-(@q20, 4, 'E');
+DROP TEMPORARY TABLE tmp_practice_questions;
 
 COMMIT;

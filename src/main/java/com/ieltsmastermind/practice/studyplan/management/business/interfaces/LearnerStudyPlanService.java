@@ -11,25 +11,18 @@ import java.util.List;
 
 public interface LearnerStudyPlanService {
     LearnerStudyPlanResponseDto create(LearnerStudyPlanCreateRequestDto request);
-    LearnerStudyPlanResponseDto getActiveByUserIdAndSkill(
+    LearnerStudyPlanResponseDto getActiveStudyPlanByUserIdAndSkill(
             String userId,
             PracticeContentSkill skill,
             IncludeSpec includes
     );
-    LearnerStudyPlanActiveCheckResponseDto checkHasActiveStudyPlan(
+    LearnerStudyPlanActiveCheckResponseDto getHasActiveStudyPlan(
             String userId,
             PracticeContentSkill skill
     );
-    void refreshStudyPlanIfStudyPlanExists(
+    LearnerStudyPlanResponseDto refreshStudyPlan(
             String userId,
             PracticeContentSkill skill
     );
-    void incrementSubmissionCountSinceCreationIfStudyPlanExists(
-            String userId,
-            PracticeContentSkill skill
-    );
-    LearnerStudyPlanResponseDto finalizeById(String id);
-    LearnerStudyPlanRefreshAfterSubmissionResponseDto refreshAfterSubmission(
-            String userId,
-            PracticeContentSkill skill
-    );}
+    LearnerStudyPlanResponseDto finalizeStudyPlanById(String id);
+}

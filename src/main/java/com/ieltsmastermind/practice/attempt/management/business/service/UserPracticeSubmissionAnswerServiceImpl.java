@@ -1,27 +1,19 @@
 package com.ieltsmastermind.practice.attempt.management.business.service;
 
 import com.ieltsmastermind.common.query.IncludeSpec;
-import com.ieltsmastermind.practice.analytics.management.business.interfaces.LearnerAnalyticsSnapshotService;
-import com.ieltsmastermind.practice.analytics.management.business.interfaces.LearnerTrendSnapshotService;
 import com.ieltsmastermind.practice.attempt.management.business.interfaces.UserPracticeSubmissionAnswerService;
 import com.ieltsmastermind.practice.attempt.management.domain.dto.*;
 import com.ieltsmastermind.practice.attempt.management.domain.entity.*;
 import com.ieltsmastermind.practice.attempt.management.domain.enums.Result;
 import com.ieltsmastermind.practice.attempt.management.persistence.*;
-import com.ieltsmastermind.practice.content.management.domain.entity.PracticeContent;
 import com.ieltsmastermind.practice.content.management.domain.entity.PracticeQuestion;
-import com.ieltsmastermind.practice.content.management.domain.enums.PracticeContentSkill;
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeQuestionType;
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeTopicTag;
-import com.ieltsmastermind.practice.content.management.persistence.PracticeContentRepository;
 import com.ieltsmastermind.practice.content.management.persistence.PracticeQuestionRepository;
-import com.ieltsmastermind.practice.studyplan.management.business.interfaces.LearnerStudyPlanService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 @Service
@@ -33,9 +25,6 @@ public class UserPracticeSubmissionAnswerServiceImpl implements UserPracticeSubm
     private final PracticeQuestionRepository practiceQuestionRepository;
     private final SubmissionQuestionTypeAccuracyRepository submissionQuestionTypeAccuracyRepository;
     private final SubmissionTopicTagAccuracyRepository submissionTopicTagAccuracyRepository;
-    private final LearnerAnalyticsSnapshotService learnerAnalyticsSnapshotService;
-    private final LearnerTrendSnapshotService learnerTrendSnapshotService;
-    private final LearnerStudyPlanService learnerStudyPlanService;
 
     @Override
     @Transactional
@@ -88,21 +77,6 @@ public class UserPracticeSubmissionAnswerServiceImpl implements UserPracticeSubm
             dto.setId(s.getId());
             response.add(dto);
         }
-
-        PracticeContentSkill skill = submission.getPracticeContent().getSkill();
-
-        learnerAnalyticsSnapshotService.createSnapshot(submission.getUserId(), skill);
-        learnerTrendSnapshotService.createSnapshot(submission.getUserId(), skill);
-
-        learnerStudyPlanService.incrementSubmissionCountSinceCreationIfStudyPlanExists(
-                submission.getUserId(),
-                skill
-        );
-
-        learnerStudyPlanService.refreshStudyPlanIfStudyPlanExists(
-                submission.getUserId(),
-                skill
-        );
 
         return response;
     }

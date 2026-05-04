@@ -5,6 +5,7 @@ import com.ieltsmastermind.common.json.JsonConverter;
 import com.ieltsmastermind.common.query.IncludeSpec;
 import com.ieltsmastermind.practice.attempt.management.business.interfaces.UserPracticeSubmissionService;
 import com.ieltsmastermind.practice.attempt.management.domain.dto.*;
+import com.ieltsmastermind.practice.attempt.management.domain.entity.SubmissionQuestionTypeAccuracy;
 import com.ieltsmastermind.practice.attempt.management.domain.entity.UserPracticeSubmission;
 import com.ieltsmastermind.practice.attempt.management.domain.enums.TutorStatus;
 import com.ieltsmastermind.practice.attempt.management.persistence.TutorUserPracticeSubmissionRepository;
@@ -144,38 +145,6 @@ public class UserPracticeSubmissionServiceImpl implements UserPracticeSubmission
 
     @Override
     @Transactional
-    public UserPracticeSubmissionSkillCountResponseDto getSubmissionCountsBySkillAndUserId(String userId) {
-        List<UserPracticeSubmissionSkillCountProjection> results =
-                userPracticeSubmissionRepository.countSubmissionsBySkillAndUserId(
-                        userId,
-                        PracticeContentSkill.WRITING,
-                        TutorStatus.COMPLETED
-                );
-
-        UserPracticeSubmissionSkillCountResponseDto dto = new UserPracticeSubmissionSkillCountResponseDto();
-        dto.setListeningCount(0L);
-        dto.setReadingCount(0L);
-        dto.setWritingCount(0L);
-        dto.setSpeakingCount(0L);
-
-        for (UserPracticeSubmissionSkillCountProjection item : results) {
-            if (item.getSkill() == null || item.getSubmissionCount() == null) {
-                continue;
-            }
-
-            switch (item.getSkill()) {
-                case LISTENING -> dto.setListeningCount(item.getSubmissionCount());
-                case READING -> dto.setReadingCount(item.getSubmissionCount());
-                case WRITING -> dto.setWritingCount(item.getSubmissionCount());
-                case SPEAKING -> dto.setSpeakingCount(item.getSubmissionCount());
-            }
-        }
-
-        return dto;
-    }
-
-    @Override
-    @Transactional
     public UserPracticeSubmissionResponseDto update(String id, UserPracticeSubmissionUpdateRequestDto request) {
         UserPracticeSubmission submission = userPracticeSubmissionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User practice submission not found with id: " + id));
@@ -213,54 +182,142 @@ public class UserPracticeSubmissionServiceImpl implements UserPracticeSubmission
         userPracticeSubmissionRepository.delete(submission);
     }
 
-    private void applyIncludes(UserPracticeSubmission submission,
-                               UserPracticeSubmissionResponseDto dto,
-                               IncludeSpec includes) {
+    private void applyIncludes(
+            UserPracticeSubmission submission,
+            UserPracticeSubmissionResponseDto dto,
+            IncludeSpec includes
+    ) {
+        if (includes.has("userid")) {
+            dto.setUserId(submission.getUserId());
+        }
 
-        if (includes.has("userid")) dto.setUserId(submission.getUserId());
-        if (includes.has("practicecontentid")) dto.setPracticeContentId(submission.getPracticeContentId());
-        if (includes.has("timespentseconds")) dto.setTimeSpentSeconds(submission.getTimeSpentSeconds());
-        if (includes.has("submittedat")) dto.setSubmittedAt(submission.getSubmittedAt());
-        if (includes.has("score")) dto.setScore(submission.getScore());
-        if (includes.has("correctanswerpercentage")) dto.setCorrectAnswerPercentage(submission.getCorrectAnswerPercentage());
-        if (includes.has("correctanswercount")) dto.setCorrectAnswerCount(submission.getCorrectAnswerCount());
-        if (includes.has("wronganswercount")) dto.setWrongAnswerCount(submission.getWrongAnswerCount());
-        if (includes.has("skipanswercount")) dto.setSkipAnswerCount(submission.getSkipAnswerCount());
-        if (includes.has("istutorreviewrequested")) dto.setIsTutorReviewRequested(submission.isTutorReviewRequested());
-        if (includes.has("tutorstatus")) dto.setTutorStatus(submission.getTutorStatus());
+        if (includes.has("practicecontentid")) {
+            dto.setPracticeContentId(submission.getPracticeContentId());
+        }
 
-        UserPracticeSubmissionUserResponseDto userDto = new UserPracticeSubmissionUserResponseDto();
+        if (includes.has("timespentseconds")) {
+            dto.setTimeSpentSeconds(submission.getTimeSpentSeconds());
+        }
 
-        if (includes.has("user.userid")) userDto.setUserId(submission.getUser().getUserId());
-        if (includes.has("user.email")) userDto.setEmail(submission.getUser().getEmail());
-        if (includes.has("user.firstname")) userDto.setFirstname(submission.getUser().getFirstname());
-        if (includes.has("user.lastname")) userDto.setLastname(submission.getUser().getLastname());
+        if (includes.has("submittedat")) {
+            dto.setSubmittedAt(submission.getSubmittedAt());
+        }
 
-        dto.setUser(userDto);
+        if (includes.has("score")) {
+            dto.setScore(submission.getScore());
+        }
 
-        UserPracticeSubmissionPracticeContentResponseDto practiceContentDto =
-                new UserPracticeSubmissionPracticeContentResponseDto();
+        if (includes.has("correctanswerpercentage")) {
+            dto.setCorrectAnswerPercentage(submission.getCorrectAnswerPercentage());
+        }
 
-        if (includes.has("practicecontent.id")) practiceContentDto.setId(submission.getPracticeContent().getId());
-        if (includes.has("practicecontent.skill")) practiceContentDto.setSkill(submission.getPracticeContent().getSkill());
-        if (includes.has("practicecontent.task")) practiceContentDto.setTask(submission.getPracticeContent().getTask());
-        if (includes.has("practicecontent.title")) practiceContentDto.setTitle(submission.getPracticeContent().getTitle());
+        if (includes.has("correctanswercount")) {
+            dto.setCorrectAnswerCount(submission.getCorrectAnswerCount());
+        }
 
-        dto.setPracticeContent(practiceContentDto);
+        if (includes.has("wronganswercount")) {
+            dto.setWrongAnswerCount(submission.getWrongAnswerCount());
+        }
 
-        List<SubmissionQuestionTypeAccuracyResponseDto> accuracyDtos =
-                submission.getQuestionTypeAccuracies().stream().map(accuracy -> {
-                    SubmissionQuestionTypeAccuracyResponseDto accuracyDto =
-                            new SubmissionQuestionTypeAccuracyResponseDto();
+        if (includes.has("skipanswercount")) {
+            dto.setSkipAnswerCount(submission.getSkipAnswerCount());
+        }
 
-                    if (includes.has("questiontypeaccuracies.questiontype")) accuracyDto.setQuestionType(accuracy.getQuestionType());
+        if (includes.has("istutorreviewrequested")) {
+            dto.setIsTutorReviewRequested(submission.isTutorReviewRequested());
+        }
 
-                    if (includes.has("questiontypeaccuracies.correctanswerpercentage")) accuracyDto.setCorrectAnswerPercentage(accuracy.getCorrectAnswerPercentage());
+        if (includes.has("tutorstatus")) {
+            dto.setTutorStatus(submission.getTutorStatus());
+        }
 
-                    return accuracyDto;
-                }).toList();
+        boolean hasUserInclude =
+                includes.has("user.userid")
+                        || includes.has("user.email")
+                        || includes.has("user.firstname")
+                        || includes.has("user.lastname");
 
-        dto.setQuestionTypeAccuracies(accuracyDtos);
+        if (hasUserInclude && submission.getUser() != null) {
+            UserPracticeSubmissionUserResponseDto userDto =
+                    new UserPracticeSubmissionUserResponseDto();
+
+            if (includes.has("user.userid")) {
+                userDto.setUserId(submission.getUser().getUserId());
+            }
+
+            if (includes.has("user.email")) {
+                userDto.setEmail(submission.getUser().getEmail());
+            }
+
+            if (includes.has("user.firstname")) {
+                userDto.setFirstname(submission.getUser().getFirstname());
+            }
+
+            if (includes.has("user.lastname")) {
+                userDto.setLastname(submission.getUser().getLastname());
+            }
+
+            dto.setUser(userDto);
+        }
+
+        boolean hasPracticeContentInclude =
+                includes.has("practicecontent.id")
+                        || includes.has("practicecontent.skill")
+                        || includes.has("practicecontent.task")
+                        || includes.has("practicecontent.title");
+
+        if (hasPracticeContentInclude && submission.getPracticeContent() != null) {
+            UserPracticeSubmissionPracticeContentResponseDto practiceContentDto =
+                    new UserPracticeSubmissionPracticeContentResponseDto();
+
+            if (includes.has("practicecontent.id")) {
+                practiceContentDto.setId(submission.getPracticeContent().getId());
+            }
+
+            if (includes.has("practicecontent.skill")) {
+                practiceContentDto.setSkill(submission.getPracticeContent().getSkill());
+            }
+
+            if (includes.has("practicecontent.task")) {
+                practiceContentDto.setTask(submission.getPracticeContent().getTask());
+            }
+
+            if (includes.has("practicecontent.title")) {
+                practiceContentDto.setTitle(submission.getPracticeContent().getTitle());
+            }
+
+            dto.setPracticeContent(practiceContentDto);
+        }
+
+        boolean hasQuestionTypeAccuraciesInclude =
+                includes.has("questiontypeaccuracies.questiontype")
+                        || includes.has("questiontypeaccuracies.correctanswerpercentage");
+
+        if (hasQuestionTypeAccuraciesInclude
+                && submission.getQuestionTypeAccuracies() != null) {
+            List<SubmissionQuestionTypeAccuracyResponseDto> accuracyDtos =
+                    new ArrayList<>();
+
+            for (SubmissionQuestionTypeAccuracy accuracy
+                    : submission.getQuestionTypeAccuracies()) {
+                SubmissionQuestionTypeAccuracyResponseDto accuracyDto =
+                        new SubmissionQuestionTypeAccuracyResponseDto();
+
+                if (includes.has("questiontypeaccuracies.questiontype")) {
+                    accuracyDto.setQuestionType(accuracy.getQuestionType());
+                }
+
+                if (includes.has("questiontypeaccuracies.correctanswerpercentage")) {
+                    accuracyDto.setCorrectAnswerPercentage(
+                            accuracy.getCorrectAnswerPercentage()
+                    );
+                }
+
+                accuracyDtos.add(accuracyDto);
+            }
+
+            dto.setQuestionTypeAccuracies(accuracyDtos);
+        }
     }
 
     private void incrementPracticeContentAttemptCount(String practiceContentId) {

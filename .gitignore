@@ -36,3 +36,6 @@ build/
 
 ### Upload Files ###
 /uploads/
+
+### Windows Shortcuts ###
+*.lnk

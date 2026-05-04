@@ -148,6 +148,29 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
+        new ArrayList<>(user.getPracticeSubmissions())
+                .forEach(practiceSubmission -> {
+                    practiceSubmission.setUserId(null);
+                    practiceSubmission.setUser(null);
+                });
+
+        new ArrayList<>(user.getPracticeContentProgresses())
+                .forEach(progress -> {
+                    progress.setUserId(null);
+                    progress.setUser(null);
+                });
+
+        new ArrayList<>(user.getSubmissionFeedbacks())
+                .forEach(feedback -> feedback.setAuthor(null));
+
+        new ArrayList<>(user.getLearnerStudyPlans())
+                .forEach(studyPlan -> studyPlan.setUser(null));
+
+        new ArrayList<>(user.getSubmissionAnalytics())
+                .forEach(analytics -> analytics.setUser(null));
+
+        userRepository.flush();
+
         userRepository.delete(user);
     }
 

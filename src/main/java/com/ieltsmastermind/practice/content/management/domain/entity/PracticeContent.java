@@ -96,7 +96,7 @@ public class PracticeContent {
     @OneToMany(mappedBy = "practiceContent", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<PracticeQuestion> questions = new ArrayList<>();
 
-    @OneToMany(mappedBy = "practiceContent", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "practiceContent")
     private List<UserPracticeSubmission> submissions = new ArrayList<>();
 
     @OneToMany(mappedBy = "practiceContent", cascade = CascadeType.REMOVE, orphanRemoval = true)

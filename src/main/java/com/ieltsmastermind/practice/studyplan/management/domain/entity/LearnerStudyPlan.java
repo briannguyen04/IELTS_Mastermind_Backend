@@ -1,9 +1,6 @@
 package com.ieltsmastermind.practice.studyplan.management.domain.entity;
 
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerAnalyticsSnapshot;
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerTrendSnapshot;
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerWritingAnalyticsSnapshot;
-import com.ieltsmastermind.practice.analytics.management.domain.entity.LearnerWritingTrendSnapshot;
+import com.ieltsmastermind.practice.analytics.management.domain.entity.*;
 import com.ieltsmastermind.practice.attempt.management.domain.entity.UserPracticeSubmission;
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeContentSkill;
 import com.ieltsmastermind.practice.studyplan.management.domain.enums.LearnerStudyPlanStatus;
@@ -67,49 +64,19 @@ public class LearnerStudyPlan {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "user_id",
-            referencedColumnName = "user_id",
-            nullable = false
+            referencedColumnName = "user_id"
     )
     private User user;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "learner_analytics_snapshot_id",
-            referencedColumnName = "learner_analytics_snapshot_id",
-            unique = true
+            name = "submission_analytics_id",
+            referencedColumnName = "submission_analytics_id"
     )
-    private LearnerAnalyticsSnapshot learnerAnalyticsSnapshot;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "learner_trend_snapshot_id",
-            referencedColumnName = "learner_trend_snapshot_id",
-            unique = true
-    )
-    private LearnerTrendSnapshot learnerTrendSnapshot;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "learner_writing_analytics_snapshot_id",
-            referencedColumnName = "learner_writing_analytics_snapshot_id",
-            unique = true
-    )
-    private LearnerWritingAnalyticsSnapshot learnerWritingAnalyticsSnapshot;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "learner_writing_trend_snapshot_id",
-            referencedColumnName = "learner_writing_trend_snapshot_id",
-            unique = true
-    )
-    private LearnerWritingTrendSnapshot learnerWritingTrendSnapshot;
-
-    @OneToMany(mappedBy = "learnerStudyPlan", cascade = CascadeType.ALL, orphanRemoval = false)
-    @OrderBy("submittedAt ASC")
-    private List<UserPracticeSubmission> submissions = new ArrayList<>();
+    private SubmissionAnalytics submissionAnalytics;
 
     @OneToMany(mappedBy = "learnerStudyPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("priorityRank ASC")

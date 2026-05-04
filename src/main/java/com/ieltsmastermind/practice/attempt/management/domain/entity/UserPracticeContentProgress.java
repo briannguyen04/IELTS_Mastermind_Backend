@@ -29,7 +29,7 @@ public class UserPracticeContentProgress {
     @Column(name = "user_practice_content_progress_id", nullable = false, updatable = false)
     private String id = UUID.randomUUID().toString();
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private String userId;
 
     @Column(name = "practice_content_id", nullable = false)
