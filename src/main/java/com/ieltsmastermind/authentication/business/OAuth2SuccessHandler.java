@@ -93,13 +93,21 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         int maxAgeSeconds = (int) (jwtUtils.getExpirationMillis() / 1000);
 
-        Cookie cookie = new Cookie("jwt", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // đổi thành true khi deploy HTTPS
-        cookie.setPath("/");
-        cookie.setMaxAge(maxAgeSeconds);
+        // Cookie cookie = new Cookie("jwt", token);
+        // cookie.setHttpOnly(true);
+        // cookie.setSecure(false); // đổi thành true khi deploy HTTPS
+        // cookie.setPath("/");
+        // cookie.setMaxAge(maxAgeSeconds);
 
-        response.addCookie(cookie);
+        // response.addCookie(cookie);
+
+        String cookieHeader = String.format(
+            "jwt=%s; Max-Age=%d; Path=/; HttpOnly; Secure; SameSite=None",
+            token,
+            maxAgeSeconds
+        );
+
+        response.setHeader("Set-Cookie", cookieHeader);
 
         // ===== REDIRECT VỀ FRONTEND =====
         response.sendRedirect(frontendUrl + "/oauth2/callback");
