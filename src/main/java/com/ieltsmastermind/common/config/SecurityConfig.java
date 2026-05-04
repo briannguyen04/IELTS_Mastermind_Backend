@@ -82,7 +82,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000")); // frontend origin
+        config.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "https://ielts-test-deploy.vercel.app"
+        ));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true); // nếu cần gửi cookie/token
