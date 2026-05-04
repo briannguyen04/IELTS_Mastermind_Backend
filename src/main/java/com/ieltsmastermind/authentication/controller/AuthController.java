@@ -53,15 +53,15 @@ public class AuthController {
             String token = authService.login(request.getEmail(), request.getPassword());
 
             int maxAgeSeconds = (int) (jwtUtils.getExpirationMillis() / 1000);
-            // Cookie cookie = new jakarta.servlet.http.Cookie("jwt", token);
-            // cookie.setHttpOnly(true);
-            // cookie.setSecure(false);
-            // cookie.setPath("/");
-            // cookie.setMaxAge(maxAgeSeconds);
-            // response.addCookie(cookie);
+            Cookie cookie = new jakarta.servlet.http.Cookie("jwt", token);
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(maxAgeSeconds);
+            response.addCookie(cookie);
 
-            String cookieHeader = String.format( "jwt=%s; Max-Age=%d; Path=/; HttpOnly; Secure; SameSite=None", token, maxAgeSeconds ); 
-            response.setHeader("Set-Cookie", cookieHeader);
+            // String cookieHeader = String.format( "jwt=%s; Max-Age=%d; Path=/; HttpOnly; Secure; SameSite=None", token, maxAgeSeconds ); 
+            // response.setHeader("Set-Cookie", cookieHeader);
 
             String role = jwtUtils.getRoleFromToken(token);
             String userId = jwtUtils.getUserIdFromToken(token);
@@ -86,15 +86,15 @@ public class AuthController {
                 authService.logout(jwtCookie);
             }
 
-            // Cookie cookie = new Cookie("jwt", null);
-            // cookie.setHttpOnly(true);
-            // cookie.setSecure(false);
-            // cookie.setPath("/");
-            // cookie.setMaxAge(0); // xóa cookie
-            // response.addCookie(cookie);
+            Cookie cookie = new Cookie("jwt", null);
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(0); // xóa cookie
+            response.addCookie(cookie);
 
-            String cookieHeader = "jwt=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None"; 
-            response.setHeader("Set-Cookie", cookieHeader);
+            // String cookieHeader = "jwt=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None"; 
+            // response.setHeader("Set-Cookie", cookieHeader);
 
             return ResponseEntity.ok(ApiResponse.success("Logged out successfully", null));
         } catch (RuntimeException e) {
