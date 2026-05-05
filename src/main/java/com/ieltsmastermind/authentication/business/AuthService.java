@@ -25,7 +25,6 @@ public class AuthService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public UserRegisterResponseDto register(UserRegisterRequestDto request) {
-        // check email
         userRepository.findByEmail(request.getEmail()).ifPresent(u -> {
             throw new RuntimeException("Email already exists");
         });
@@ -59,7 +58,9 @@ public class AuthService {
                 user.getUserId(),
                 user.getRole()
         );
+
         sessionManager.addSession(token, user.getUserId(),user.getRole(), jwtUtils.getExpirationMillis());
+
         return token;
     }
 
@@ -68,7 +69,4 @@ public class AuthService {
             sessionManager.removeSession(token);
         }
     }
-
-
-
 }
