@@ -6,6 +6,7 @@ import com.ieltsmastermind.user.management.domain.dto.UserCreateRequestDto;
 import com.ieltsmastermind.user.management.domain.dto.UserResponseDto;
 import com.ieltsmastermind.user.management.domain.dto.UserUpdateRequestDto;
 import com.ieltsmastermind.user.management.domain.entity.User;
+import com.ieltsmastermind.user.management.domain.enums.AuthProvider;
 import com.ieltsmastermind.user.management.persistence.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -56,6 +57,8 @@ public class UserServiceImpl implements UserService {
         user.setExamDate(request.getExamDate());
 
         user.setRole(request.getRole());
+        user.setProvider(AuthProvider.LOCAL);
+        user.setProviderId(null);
         user.setIsActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setLastLoginAt(null);
