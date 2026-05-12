@@ -1,19 +1,28 @@
 USE ielts_mastermind_db;
 
-SET @practice_content_id = 'cafa853c-1323-410a-a407-c1ef23b72c56';
+SET @practice_content_id = '9816ec8b-cbab-4954-9ec6-f93dc06807de';
 
 START TRANSACTION;
 
+DROP TEMPORARY TABLE IF EXISTS tmp_old_practice_questions;
 DROP TEMPORARY TABLE IF EXISTS tmp_practice_questions;
 
-DELETE pqa
-FROM practice_question_answer pqa
-JOIN practice_question pq
-    ON pqa.practice_question_id = pq.practice_question_id
-WHERE pq.practice_content_id = @practice_content_id;
+CREATE TEMPORARY TABLE tmp_old_practice_questions AS
+SELECT practice_question_id
+FROM practice_question
+WHERE practice_content_id = @practice_content_id;
+
+DELETE FROM practice_question_answer
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
 
 DELETE FROM practice_question
-WHERE practice_content_id = @practice_content_id;
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
 
 CREATE TEMPORARY TABLE tmp_practice_questions AS
 WITH RECURSIVE seq(n) AS (
@@ -26,46 +35,17 @@ WITH RECURSIVE seq(n) AS (
 SELECT
     UUID() AS practice_question_id,
     n AS order_index,
-    ELT(
-        FLOOR(1 + RAND() * 12),
-        'MULTIPLE_CHOICE',
-        'MATCHING',
-        'PLAN_LABELLING',
-        'MAP_LABELLING',
-        'DIAGRAM_LABELLING',
-        'FORM_COMPLETION',
-        'NOTE_COMPLETION',
-        'TABLE_COMPLETION',
-        'FLOW_CHART_COMPLETION',
-        'SUMMARY_COMPLETION',
-        'SENTENCE_COMPLETION',
-        'SHORT_ANSWER_QUESTIONS'
-    ) AS type,
-    ELT(
-        FLOOR(1 + RAND() * 22),
-        'EDUCATION_AND_LEARNING',
-        'WORK_JOBS_AND_CAREERS',
-        'TECHNOLOGY_INTERNET_AND_AI',
-        'HEALTH_HEALTHCARE_AND_LIFESTYLE',
-        'ENVIRONMENT_CLIMATE_AND_SUSTAINABILITY',
-        'GOVERNMENT_LAW_AND_PUBLIC_POLICY',
-        'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES',
-        'FAMILY_CHILDREN_AND_AGEING',
-        'MEDIA_ADVERTISING_AND_COMMUNICATION',
-        'CULTURE_ART_TRADITIONS_AND_LANGUAGE',
-        'TRAVEL_TOURISM_AND_TRANSPORT',
-        'HOUSING_CITIES_AND_URBAN_RURAL_LIFE',
-        'SCIENCE_RESEARCH_AND_INNOVATION',
-        'BUSINESS_ECONOMY_AND_CONSUMER_BEHAVIOR',
-        'FOOD_AGRICULTURE_AND_FARMING',
-        'SPORT_LEISURE_AND_HOBBIES',
-        'HISTORY_ARCHAEOLOGY_AND_HERITAGE',
-        'ENERGY_NATURAL_RESOURCES_AND_INFRASTRUCTURE',
-        'CRIME_SAFETY_AND_SECURITY',
-        'GLOBALISATION_MIGRATION_AND_INTERNATIONAL_DEVELOPMENT',
-        'POPULATION_AND_DEMOGRAPHICS',
-        'ANIMALS_AND_WILDLIFE'
-    ) AS topic_tag,
+    CASE
+        WHEN n BETWEEN 1 AND 6 THEN 'FORM_COMPLETION'
+        WHEN n BETWEEN 7 AND 10 THEN 'MULTIPLE_CHOICE'
+        WHEN n BETWEEN 11 AND 15 THEN 'NOTE_COMPLETION'
+        WHEN n BETWEEN 16 AND 20 THEN 'SENTENCE_COMPLETION'
+        WHEN n BETWEEN 21 AND 25 THEN 'FORM_COMPLETION'
+        WHEN n BETWEEN 26 AND 30 THEN 'MULTIPLE_CHOICE'
+        WHEN n BETWEEN 31 AND 35 THEN 'NOTE_COMPLETION'
+        WHEN n BETWEEN 36 AND 40 THEN 'MULTIPLE_CHOICE'
+    END AS type,
+    'TRAVEL_TOURISM_AND_TRANSPORT' AS topic_tag,
     @practice_content_id AS practice_content_id
 FROM seq;
 
@@ -99,6 +79,7 @@ UPDATE practice_content
 SET question_count = 40
 WHERE practice_content_id = @practice_content_id;
 
+DROP TEMPORARY TABLE tmp_old_practice_questions;
 DROP TEMPORARY TABLE tmp_practice_questions;
 
 COMMIT;
