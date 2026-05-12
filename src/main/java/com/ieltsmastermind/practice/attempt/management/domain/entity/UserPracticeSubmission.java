@@ -92,26 +92,26 @@ public class UserPracticeSubmission {
             updatable = false)
     private User user;
 
-    @OneToMany(mappedBy = "submission")
+    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<UserPracticeSubmissionAnswer> answerRows = new ArrayList<>();
 
-    @OneToMany(mappedBy = "submission")
+    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<UserPracticeWritingAnswer> writingAnswers = new ArrayList<>();
 
-    @OneToMany(mappedBy = "submission")
+    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @OrderBy("createdAt ASC")
     private List<SubmissionFeedback> submissionFeedbacks = new ArrayList<>();
 
-    @OneToMany(mappedBy = "userPracticeSubmission")
+    @OneToMany(mappedBy = "userPracticeSubmission", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<TutorUserPracticeSubmission> tutorUserPracticeSubmissions = new ArrayList<>();
 
-    @OneToMany(mappedBy = "submission")
+    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @OrderBy("questionType ASC")
     private List<SubmissionQuestionTypeAccuracy> questionTypeAccuracies = new ArrayList<>();
 
-    @OneToMany(mappedBy = "submission")
+    @OneToMany(mappedBy = "submission", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @OrderBy("topicTag ASC")
     private List<SubmissionTopicTagAccuracy> topicTagAccuracies = new ArrayList<>();
 
