@@ -98,6 +98,10 @@ public class UserPracticeWritingReviewServiceImpl implements UserPracticeWriting
 
         review.setOverallTutorBand(overallTutorBand);
 
+        if (review.getWritingAnswer() != null && review.getWritingAnswer().getSubmission() != null) {
+            review.getWritingAnswer().getSubmission().setScore(overallTutorBand);
+        }
+
         UserPracticeWritingReview saved =
                 userPracticeWritingReviewRepository.save(review);
 
@@ -127,7 +131,6 @@ public class UserPracticeWritingReviewServiceImpl implements UserPracticeWriting
         if (includes.has("reviewedbyuser.email")) reviewedByUserDto.setEmail(review.getReviewedByUser().getEmail());
         if (includes.has("reviewedbyuser.firstname")) reviewedByUserDto.setFirstname(review.getReviewedByUser().getFirstname());
         if (includes.has("reviewedbyuser.lastname")) reviewedByUserDto.setLastname(review.getReviewedByUser().getLastname());
-
 
         dto.setReviewedByUser(reviewedByUserDto);
     }
