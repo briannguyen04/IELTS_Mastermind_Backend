@@ -1,0 +1,131 @@
+USE ielts_mastermind_db;
+
+SET @practice_content_id = '898df235-3195-40fd-8a93-7b6561872fea';
+
+START TRANSACTION;
+
+DROP TEMPORARY TABLE IF EXISTS tmp_old_practice_questions;
+DROP TEMPORARY TABLE IF EXISTS tmp_practice_questions;
+
+CREATE TEMPORARY TABLE tmp_old_practice_questions AS
+SELECT practice_question_id
+FROM practice_question
+WHERE practice_content_id = @practice_content_id;
+
+DELETE FROM practice_question_answer
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+DELETE FROM practice_question
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+CREATE TEMPORARY TABLE tmp_practice_questions AS
+WITH RECURSIVE seq(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1
+    FROM seq
+    WHERE n < 40
+)
+SELECT
+    UUID() AS practice_question_id,
+    n AS order_index,
+    CASE
+        WHEN n BETWEEN 1 AND 7 THEN 'IDENTIFYING_INFORMATION_TRUE_FALSE_NOT_GIVEN'
+        WHEN n BETWEEN 8 AND 13 THEN 'NOTE_COMPLETION'
+        WHEN n BETWEEN 14 AND 20 THEN 'MATCHING_HEADINGS'
+        WHEN n BETWEEN 21 AND 26 THEN 'SUMMARY_COMPLETION'
+        WHEN n BETWEEN 27 AND 31 THEN 'MATCHING_SENTENCE_ENDINGS'
+        WHEN n BETWEEN 32 AND 36 THEN 'SUMMARY_COMPLETION'
+        WHEN n BETWEEN 37 AND 40 THEN 'MULTIPLE_CHOICE'
+    END AS type,
+    CASE
+        WHEN n BETWEEN 1 AND 13 THEN 'CULTURE_ART_TRADITIONS_AND_LANGUAGE'
+        WHEN n BETWEEN 14 AND 26 THEN 'ENVIRONMENT_CLIMATE_AND_SUSTAINABILITY'
+        WHEN n BETWEEN 27 AND 40 THEN 'CULTURE_ART_TRADITIONS_AND_LANGUAGE'
+    END AS topic_tag,
+    @practice_content_id AS practice_content_id
+FROM seq;
+
+INSERT INTO practice_question (
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+)
+SELECT
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+FROM tmp_practice_questions;
+
+INSERT INTO practice_question_answer (
+    practice_question_id,
+    answer_index,
+    answer_value
+)
+SELECT
+    q.practice_question_id,
+    a.answer_index,
+    a.answer_value
+FROM tmp_practice_questions q
+JOIN (
+    SELECT 1 AS order_index, 0 AS answer_index, 'TRUE' AS answer_value
+    UNION ALL SELECT 2, 0, 'FALSE'
+    UNION ALL SELECT 3, 0, 'NOT GIVEN'
+    UNION ALL SELECT 4, 0, 'TRUE'
+    UNION ALL SELECT 5, 0, 'NOT GIVEN'
+    UNION ALL SELECT 6, 0, 'FALSE'
+    UNION ALL SELECT 7, 0, 'TRUE'
+    UNION ALL SELECT 8, 0, 'resignation'
+    UNION ALL SELECT 9, 0, 'materials'
+    UNION ALL SELECT 10, 0, 'miners'
+    UNION ALL SELECT 11, 0, 'family'
+    UNION ALL SELECT 12, 0, 'collectors'
+    UNION ALL SELECT 13, 0, 'income'
+    UNION ALL SELECT 14, 0, 'iii'
+    UNION ALL SELECT 15, 0, 'vi'
+    UNION ALL SELECT 16, 0, 'v'
+    UNION ALL SELECT 17, 0, 'x'
+    UNION ALL SELECT 18, 0, 'iv'
+    UNION ALL SELECT 19, 0, 'viii'
+    UNION ALL SELECT 20, 0, 'i'
+    UNION ALL SELECT 21, 0, 'wheels'
+    UNION ALL SELECT 22, 0, 'film'
+    UNION ALL SELECT 23, 0, 'filter'
+    UNION ALL SELECT 24, 0, 'waste'
+    UNION ALL SELECT 25, 0, 'performance'
+    UNION ALL SELECT 26, 0, 'servicing'
+    UNION ALL SELECT 27, 0, 'C'
+    UNION ALL SELECT 28, 0, 'B'
+    UNION ALL SELECT 29, 0, 'F'
+    UNION ALL SELECT 30, 0, 'A'
+    UNION ALL SELECT 31, 0, 'E'
+    UNION ALL SELECT 32, 0, 'D'
+    UNION ALL SELECT 33, 0, 'F'
+    UNION ALL SELECT 34, 0, 'B'
+    UNION ALL SELECT 35, 0, 'C'
+    UNION ALL SELECT 36, 0, 'G'
+    UNION ALL SELECT 37, 0, 'B'
+    UNION ALL SELECT 38, 0, 'D'
+    UNION ALL SELECT 39, 0, 'A'
+    UNION ALL SELECT 40, 0, 'A'
+) a
+    ON a.order_index = q.order_index;
+
+UPDATE practice_content
+SET question_count = 40
+WHERE practice_content_id = @practice_content_id;
+
+DROP TEMPORARY TABLE tmp_old_practice_questions;
+DROP TEMPORARY TABLE tmp_practice_questions;
+
+COMMIT;

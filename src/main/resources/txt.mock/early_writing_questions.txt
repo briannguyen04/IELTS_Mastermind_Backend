@@ -1,0 +1,142 @@
+USE ielts_mastermind_db;
+
+SET @practice_content_id = '3eede216-7736-4d51-a387-540ded5838ad';
+
+START TRANSACTION;
+
+DROP TEMPORARY TABLE IF EXISTS tmp_old_practice_questions;
+DROP TEMPORARY TABLE IF EXISTS tmp_practice_questions;
+
+CREATE TEMPORARY TABLE tmp_old_practice_questions AS
+SELECT practice_question_id
+FROM practice_question
+WHERE practice_content_id = @practice_content_id;
+
+DELETE FROM practice_question_answer
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+DELETE FROM practice_question
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+CREATE TEMPORARY TABLE tmp_practice_questions AS
+WITH RECURSIVE seq(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1
+    FROM seq
+    WHERE n < 40
+)
+SELECT
+    UUID() AS practice_question_id,
+    n AS order_index,
+    CASE
+        WHEN n BETWEEN 1 AND 10 THEN 'FORM_COMPLETION'
+        WHEN n BETWEEN 11 AND 16 THEN 'MAP_LABELLING'
+        WHEN n BETWEEN 17 AND 24 THEN 'MULTIPLE_CHOICE'
+        WHEN n BETWEEN 25 AND 30 THEN 'MATCHING'
+        WHEN n BETWEEN 31 AND 40 THEN 'NOTE_COMPLETION'
+    END AS type,
+    CASE
+        WHEN n BETWEEN 1 AND 10 THEN 'TRAVEL_TOURISM_AND_TRANSPORT'
+        WHEN n BETWEEN 11 AND 20 THEN 'HOUSING_CITIES_AND_URBAN_RURAL_LIFE'
+        WHEN n BETWEEN 21 AND 30 THEN 'SCIENCE_RESEARCH_AND_INNOVATION'
+        WHEN n BETWEEN 31 AND 40 THEN 'BUSINESS_ECONOMY_AND_CONSUMER_BEHAVIOR'
+    END AS topic_tag,
+    @practice_content_id AS practice_content_id
+FROM seq;
+
+INSERT INTO practice_question (
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+)
+SELECT
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+FROM tmp_practice_questions;
+
+INSERT INTO practice_question_answer (
+    practice_question_id,
+    answer_index,
+    answer_value
+)
+SELECT
+    q.practice_question_id,
+    a.answer_index,
+    a.answer_value
+FROM tmp_practice_questions q
+JOIN (
+    SELECT 1 AS order_index, 0 AS answer_index, 'journalist' AS answer_value
+    UNION ALL SELECT 2, 0, 'shopping'
+    UNION ALL SELECT 3, 0, 'Staunfirth'
+    UNION ALL SELECT 4, 0, 'return'
+    UNION ALL SELECT 5, 0, '23.70'
+    UNION ALL SELECT 6, 0, 'online'
+    UNION ALL SELECT 7, 0, 'delay'
+    UNION ALL SELECT 8, 0, 'information'
+    UNION ALL SELECT 9, 0, 'platform'
+    UNION ALL SELECT 9, 1, 'platforms'
+    UNION ALL SELECT 10, 0, 'parking'
+    UNION ALL SELECT 11, 0, 'D'
+    UNION ALL SELECT 12, 0, 'C'
+    UNION ALL SELECT 13, 0, 'G'
+    UNION ALL SELECT 14, 0, 'H'
+    UNION ALL SELECT 15, 0, 'A'
+    UNION ALL SELECT 16, 0, 'E'
+
+    -- Questions 17 and 18: A and D are accepted in either order.
+    UNION ALL SELECT 17, 0, 'A'
+    UNION ALL SELECT 17, 1, 'D'
+    UNION ALL SELECT 18, 0, 'A'
+    UNION ALL SELECT 18, 1, 'D'
+
+    -- Questions 19 and 20: A and C are accepted in either order.
+    UNION ALL SELECT 19, 0, 'A'
+    UNION ALL SELECT 19, 1, 'C'
+    UNION ALL SELECT 20, 0, 'A'
+    UNION ALL SELECT 20, 1, 'C'
+
+    UNION ALL SELECT 21, 0, 'B'
+    UNION ALL SELECT 22, 0, 'A'
+    UNION ALL SELECT 23, 0, 'B'
+    UNION ALL SELECT 24, 0, 'A'
+    UNION ALL SELECT 25, 0, 'A'
+    UNION ALL SELECT 26, 0, 'A'
+    UNION ALL SELECT 27, 0, 'B'
+    UNION ALL SELECT 28, 0, 'B'
+    UNION ALL SELECT 29, 0, 'A'
+    UNION ALL SELECT 30, 0, 'C'
+    UNION ALL SELECT 31, 0, 'wealth'
+    UNION ALL SELECT 32, 0, 'technology'
+    UNION ALL SELECT 33, 0, 'power'
+    UNION ALL SELECT 34, 0, 'textile'
+    UNION ALL SELECT 34, 1, 'textiles'
+    UNION ALL SELECT 35, 0, 'machines'
+    UNION ALL SELECT 36, 0, 'newspapers'
+    UNION ALL SELECT 37, 0, 'local'
+    UNION ALL SELECT 38, 0, 'lighting'
+    UNION ALL SELECT 39, 0, 'windows'
+    UNION ALL SELECT 40, 0, 'advertising'
+    UNION ALL SELECT 40, 1, 'Advertising'
+) a
+    ON a.order_index = q.order_index;
+
+UPDATE practice_content
+SET question_count = 40
+WHERE practice_content_id = @practice_content_id;
+
+DROP TEMPORARY TABLE tmp_old_practice_questions;
+DROP TEMPORARY TABLE tmp_practice_questions;
+
+COMMIT;
