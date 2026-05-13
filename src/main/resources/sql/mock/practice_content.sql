@@ -25,3 +25,60 @@ INSERT INTO ielts_mastermind_db.practice_content (
 ('21', 6,  'LISTENING', 'Theatre Ticket Booking',        NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1771911651651-e70a9eed91d1?w=400', 15, 10, '2024-03-25 00:00:00', '2024-03-25 00:00:00', 'PUBLISHED'),
 ('22', 22, 'LISTENING', 'Hotel Check-In Information',    NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1763560705345-5aed55f99c8f?w=400', 15, 10, '2024-03-26 00:00:00', '2024-03-26 00:00:00', 'PUBLISHED'),
 ('23', 11, 'LISTENING', 'Workplace Project Meeting',     NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?w=400', 15, 10, '2024-03-27 00:00:00', '2024-03-27 00:00:00', 'PUBLISHED');
+
+INSERT INTO ielts_mastermind_db.practice_content (
+  practice_content_id,
+  attempt_count,
+  skill,
+  title,
+  instructions,
+  instructions_parsed,
+  task,
+  thumbnail_url,
+  duration_minutes,
+  question_count,
+  updated_on,
+  created_on,
+  status
+) VALUES
+('24', 19, 'READING', 'The History of Urban Gardens',          NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400', 20, 13, '2024-03-28 00:00:00', '2024-03-28 00:00:00', 'PUBLISHED'),
+('25', 8,  'READING', 'How Sleep Affects Learning',            NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=400', 20, 13, '2024-03-29 00:00:00', '2024-03-29 00:00:00', 'PUBLISHED'),
+('26', 26, 'READING', 'Renewable Energy in Coastal Cities',    NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400', 20, 13, '2024-03-30 00:00:00', '2024-03-30 00:00:00', 'PUBLISHED'),
+('27', 14, 'READING', 'The Science of Memory',                 NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400', 20, 13, '2024-03-31 00:00:00', '2024-03-31 00:00:00', 'PUBLISHED'),
+('28', 33, 'READING', 'Ancient Trade Routes',                  NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400', 20, 13, '2024-04-01 00:00:00', '2024-04-01 00:00:00', 'PUBLISHED'),
+('29', 10, 'READING', 'The Future of Public Transport',        NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=400', 20, 13, '2024-04-02 00:00:00', '2024-04-02 00:00:00', 'PUBLISHED'),
+('30', 21, 'READING', 'Wildlife Conservation Strategies',      NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=400', 20, 13, '2024-04-03 00:00:00', '2024-04-03 00:00:00', 'PUBLISHED'),
+('31', 16, 'READING', 'The Rise of Online Education',          NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400', 20, 13, '2024-04-04 00:00:00', '2024-04-04 00:00:00', 'PUBLISHED'),
+('32', 29, 'READING', 'Food Production and Climate Change',    NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400', 20, 13, '2024-04-05 00:00:00', '2024-04-05 00:00:00', 'PUBLISHED'),
+('33', 5,  'READING', 'The Psychology of Consumer Choices',    NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400', 20, 13, '2024-04-06 00:00:00', '2024-04-06 00:00:00', 'PUBLISHED'),
+('34', 23, 'READING', 'Architecture in Modern Cities',         NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400', 20, 13, '2024-04-07 00:00:00', '2024-04-07 00:00:00', 'PUBLISHED'),
+('35', 13, 'READING', 'The Development of Early Writing',      NULL, NULL, 'ALL', 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400', 20, 13, '2024-04-08 00:00:00', '2024-04-08 00:00:00', 'PUBLISHED');
+
+INSERT INTO ielts_mastermind_db.practice_content (
+  practice_content_id,
+  attempt_count,
+  skill,
+  title,
+  instructions,
+  instructions_parsed,
+  task,
+  thumbnail_url,
+  duration_minutes,
+  question_count,
+  updated_on,
+  created_on,
+  status
+) VALUES
+('36', 17, 'WRITING', 'Online Course Enrolment Trends',                 NULL, NULL, 'TASK_1', 'https://images.unsplash.com/photo-1763038311036-6d18805537e5?auto=format&fit=crop&w=400&q=80', 20, 1, '2024-04-09 00:00:00', '2024-04-09 00:00:00', 'PUBLISHED'),
+('37', 9,  'WRITING', 'Commuting Methods in Three Cities',              NULL, NULL, 'TASK_1', 'https://images.unsplash.com/photo-1744314935740-e6d563c12cc9?auto=format&fit=crop&w=400&q=80', 20, 1, '2024-04-10 00:00:00', '2024-04-10 00:00:00', 'PUBLISHED'),
+('38', 25, 'WRITING', 'Household Recycling Choices',                    NULL, NULL, 'TASK_1', 'https://images.unsplash.com/photo-1741518516414-a2eff67493d1?auto=format&fit=crop&w=400&q=80', 20, 1, '2024-04-11 00:00:00', '2024-04-11 00:00:00', 'PUBLISHED'),
+('39', 13, 'WRITING', 'Graduate Employment by Field of Study',          NULL, NULL, 'TASK_1', 'https://images.unsplash.com/photo-1758270703813-2ecf235a6462?auto=format&fit=crop&w=400&q=80', 20, 1, '2024-04-12 00:00:00', '2024-04-12 00:00:00', 'PUBLISHED'),
+('40', 31, 'WRITING', 'Plastic Bottle Recycling',                       NULL, NULL, 'TASK_1', 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400', 20, 1, '2024-04-13 00:00:00', '2024-04-13 00:00:00', 'PUBLISHED'),
+('41', 11, 'WRITING', 'Redevelopment of a Riverside Park',              NULL, NULL, 'TASK_1', 'https://images.unsplash.com/photo-1702569111321-7bc333ba8369?auto=format&fit=crop&w=400&q=80', 20, 1, '2024-04-14 00:00:00', '2024-04-14 00:00:00', 'PUBLISHED'),
+
+('42', 28, 'WRITING', 'Practical Skills in University Education',       NULL, NULL, 'TASK_2', 'https://images.unsplash.com/photo-1758270703813-2ecf235a6462?auto=format&fit=crop&w=400&q=80', 40, 1, '2024-04-15 00:00:00', '2024-04-15 00:00:00', 'PUBLISHED'),
+('43', 15, 'WRITING', 'Remote Work and Employee Well-Being',            NULL, NULL, 'TASK_2', 'https://images.unsplash.com/photo-1758611971329-94fa9d6aa8a5?auto=format&fit=crop&w=400&q=80', 40, 1, '2024-04-16 00:00:00', '2024-04-16 00:00:00', 'PUBLISHED'),
+('44', 34, 'WRITING', 'Social Media and Teen Communication',            NULL, NULL, 'TASK_2', 'https://images.unsplash.com/photo-1758874384827-cffa6ec6e2d3?auto=format&fit=crop&w=400&q=80', 40, 1, '2024-04-17 00:00:00', '2024-04-17 00:00:00', 'PUBLISHED'),
+('45', 6,  'WRITING', 'Fast Fashion and Sustainable Consumption',       NULL, NULL, 'TASK_2', 'https://images.unsplash.com/photo-1604882767135-b41fac508fff?auto=format&fit=crop&w=400&q=80', 40, 1, '2024-04-18 00:00:00', '2024-04-18 00:00:00', 'PUBLISHED'),
+('46', 22, 'WRITING', 'Public Health Campaigns and Personal Responsibility', NULL, NULL, 'TASK_2', 'https://images.unsplash.com/photo-1666887360388-93e684b6474a?auto=format&fit=crop&w=400&q=80', 40, 1, '2024-04-19 00:00:00', '2024-04-19 00:00:00', 'PUBLISHED'),
+('47', 12, 'WRITING', 'Artificial Intelligence in the Classroom',       NULL, NULL, 'TASK_2', 'https://images.unsplash.com/photo-1745674684468-b9fc392fda3f?auto=format&fit=crop&w=400&q=80', 40, 1, '2024-04-20 00:00:00', '2024-04-20 00:00:00', 'PUBLISHED');

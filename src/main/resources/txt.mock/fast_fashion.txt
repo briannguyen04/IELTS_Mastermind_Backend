@@ -1,0 +1,19 @@
+[f style="normal" color="#0f172a" size="18" weight="700"]WRITING TASK 2[/f]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]You should spend about 40 minutes on this task.[/f]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]Write about the following topic:[/f]
+
+[table]
+[row]
+[cell][f style="italic" color="#0f172a" size="14" weight="700"]In some countries, owning a home rather than renting one is very important for people.[/f]
+
+[f style="italic" color="#0f172a" size="14" weight="700"]Why might this be the case?[/f]
+
+[f style="italic" color="#0f172a" size="14" weight="700"]Do you think this is a positive or negative situation?[/f][/cell]
+[/row]
+[/table]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]Give reasons for your answer and include any relevant examples from your own knowledge or experience.[/f]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]Write at least 250 words.[/f]

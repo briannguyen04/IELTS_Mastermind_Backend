@@ -1,0 +1,15 @@
+[f style="normal" color="#0f172a" size="18" weight="700"]WRITING TASK 1[/f]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]You should spend about 20 minutes on this task.[/f]
+
+[table]
+[row]
+[cell][f style="italic" color="#0f172a" size="14" weight="700"]The graph below shows the number of tourists visiting a particular Caribbean island between 2010 and 2017.[/f]
+
+[f style="italic" color="#0f172a" size="14" weight="700"]Summarise the information by selecting and reporting the main features, and make comparisons where relevant.[/f][/cell]
+[/row]
+[/table]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]Write at least 150 words.[/f]
+
+[f style="normal" color="#0f172a" size="18" weight="700"]Number of tourists visiting a Caribbean island (2010–2017)[/f]

@@ -1,0 +1,19 @@
+[f style="normal" color="#0f172a" size="26" weight="800"]Test 2[/f]
+
+[f style="normal" color="#0f172a" size="18" weight="700"]WRITING TASK 2[/f]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]You should spend about 40 minutes on this task.[/f]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]Write about the following topic:[/f]
+
+[table]
+[row]
+[cell][f style="italic" color="#0f172a" size="14" weight="700"]In the future, nobody will buy printed newspapers or books because they will be able to read everything they want online without paying.[/f]
+
+[f style="italic" color="#0f172a" size="14" weight="700"]To what extent do you agree or disagree with this statement?[/f][/cell]
+[/row]
+[/table]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]Give reasons for your answer and include any relevant examples from your own knowledge or experience.[/f]
+
+[f style="normal" color="#0f172a" size="14" weight="400"]Write at least 250 words.[/f]
