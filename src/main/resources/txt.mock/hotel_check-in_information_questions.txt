@@ -1,0 +1,146 @@
+USE ielts_mastermind_db;
+
+SET @practice_content_id = 'e355babf-6cb8-43f3-83c5-0f51fa1bfefd';
+
+START TRANSACTION;
+
+DROP TEMPORARY TABLE IF EXISTS tmp_old_practice_questions;
+DROP TEMPORARY TABLE IF EXISTS tmp_practice_questions;
+
+CREATE TEMPORARY TABLE tmp_old_practice_questions AS
+SELECT practice_question_id
+FROM practice_question
+WHERE practice_content_id = @practice_content_id;
+
+DELETE FROM practice_question_answer
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+DELETE FROM practice_question
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+CREATE TEMPORARY TABLE tmp_practice_questions AS
+WITH RECURSIVE seq(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1
+    FROM seq
+    WHERE n < 40
+)
+SELECT
+    UUID() AS practice_question_id,
+    n AS order_index,
+    CASE
+        WHEN n BETWEEN 1 AND 10 THEN 'NOTE_COMPLETION'
+        WHEN n BETWEEN 11 AND 20 THEN 'MULTIPLE_CHOICE'
+        WHEN n BETWEEN 21 AND 26 THEN 'NOTE_COMPLETION'
+        WHEN n BETWEEN 27 AND 30 THEN 'MATCHING'
+        WHEN n BETWEEN 31 AND 40 THEN 'NOTE_COMPLETION'
+    END AS type,
+    CASE
+        WHEN n BETWEEN 1 AND 10 THEN 'WORK_JOBS_AND_CAREERS'
+        WHEN n BETWEEN 11 AND 20 THEN 'SOCIETY_SOCIAL_BEHAVIOR_AND_VALUES'
+        WHEN n BETWEEN 21 AND 30 THEN 'MEDIA_ADVERTISING_AND_COMMUNICATION'
+        WHEN n BETWEEN 31 AND 40 THEN 'HEALTH_HEALTHCARE_AND_LIFESTYLE'
+    END AS topic_tag,
+    @practice_content_id AS practice_content_id
+FROM seq;
+
+INSERT INTO practice_question (
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+)
+SELECT
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+FROM tmp_practice_questions;
+
+INSERT INTO practice_question_answer (
+    practice_question_id,
+    answer_index,
+    answer_value
+)
+SELECT
+    q.practice_question_id,
+    a.answer_index,
+    a.answer_value
+FROM tmp_practice_questions q
+JOIN (
+    SELECT 1 AS order_index, 0 AS answer_index, 'furniture' AS answer_value
+    UNION ALL SELECT 2, 0, 'meetings'
+    UNION ALL SELECT 3, 0, 'diary'
+    UNION ALL SELECT 4, 0, 'detail'
+    UNION ALL SELECT 4, 1, 'details'
+    UNION ALL SELECT 5, 0, '1'
+    UNION ALL SELECT 5, 1, 'one year'
+    UNION ALL SELECT 5, 2, '1 year'
+    UNION ALL SELECT 6, 0, 'deliveries'
+    UNION ALL SELECT 7, 0, 'tidy'
+    UNION ALL SELECT 8, 0, 'team'
+    UNION ALL SELECT 9, 0, 'heavy'
+    UNION ALL SELECT 10, 0, 'customer'
+    UNION ALL SELECT 11, 0, 'B'
+    UNION ALL SELECT 12, 0, 'A'
+    UNION ALL SELECT 13, 0, 'C'
+    UNION ALL SELECT 14, 0, 'B'
+    UNION ALL SELECT 15, 0, 'C'
+    UNION ALL SELECT 16, 0, 'B'
+
+    -- Questions 17 and 18: B and D are accepted in either order.
+    UNION ALL SELECT 17, 0, 'B'
+    UNION ALL SELECT 17, 1, 'D'
+    UNION ALL SELECT 18, 0, 'B'
+    UNION ALL SELECT 18, 1, 'D'
+
+    -- Questions 19 and 20: A and E are accepted in either order.
+    UNION ALL SELECT 19, 0, 'A'
+    UNION ALL SELECT 19, 1, 'E'
+    UNION ALL SELECT 20, 0, 'A'
+    UNION ALL SELECT 20, 1, 'E'
+
+    UNION ALL SELECT 21, 0, 'page'
+    UNION ALL SELECT 22, 0, 'size'
+    UNION ALL SELECT 23, 0, 'graphic'
+    UNION ALL SELECT 23, 1, 'graphics'
+    UNION ALL SELECT 24, 0, 'structure'
+    UNION ALL SELECT 25, 0, 'purpose'
+    UNION ALL SELECT 26, 0, 'assumption'
+    UNION ALL SELECT 26, 1, 'assumptions'
+    UNION ALL SELECT 27, 0, 'A'
+    UNION ALL SELECT 28, 0, 'C'
+    UNION ALL SELECT 29, 0, 'C'
+    UNION ALL SELECT 30, 0, 'B'
+    UNION ALL SELECT 31, 0, 'mud'
+    UNION ALL SELECT 32, 0, 'clay'
+    UNION ALL SELECT 33, 0, 'metal'
+    UNION ALL SELECT 34, 0, 'hair'
+    UNION ALL SELECT 35, 0, 'bath'
+    UNION ALL SELECT 35, 1, 'baths'
+    UNION ALL SELECT 36, 0, 'disease'
+    UNION ALL SELECT 36, 1, 'diseases'
+    UNION ALL SELECT 37, 0, 'perfume'
+    UNION ALL SELECT 38, 0, 'salt'
+    UNION ALL SELECT 39, 0, 'science'
+    UNION ALL SELECT 40, 0, 'tax'
+) a
+    ON a.order_index = q.order_index;
+
+UPDATE practice_content
+SET question_count = 40
+WHERE practice_content_id = @practice_content_id;
+
+DROP TEMPORARY TABLE tmp_old_practice_questions;
+DROP TEMPORARY TABLE tmp_practice_questions;
+
+COMMIT;

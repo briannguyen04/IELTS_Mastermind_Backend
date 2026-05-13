@@ -1,0 +1,144 @@
+USE ielts_mastermind_db;
+
+SET @practice_content_id = '7aea4a27-6b91-4516-adf3-b5788461f1b2';
+
+START TRANSACTION;
+
+DROP TEMPORARY TABLE IF EXISTS tmp_old_practice_questions;
+DROP TEMPORARY TABLE IF EXISTS tmp_practice_questions;
+
+CREATE TEMPORARY TABLE tmp_old_practice_questions AS
+SELECT practice_question_id
+FROM practice_question
+WHERE practice_content_id = @practice_content_id;
+
+DELETE FROM practice_question_answer
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+DELETE FROM practice_question
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+CREATE TEMPORARY TABLE tmp_practice_questions AS
+WITH RECURSIVE seq(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1
+    FROM seq
+    WHERE n < 40
+)
+SELECT
+    UUID() AS practice_question_id,
+    n AS order_index,
+    CASE
+        WHEN n BETWEEN 1 AND 4 THEN 'TABLE_COMPLETION'
+        WHEN n BETWEEN 5 AND 10 THEN 'NOTE_COMPLETION'
+        WHEN n BETWEEN 11 AND 14 THEN 'MULTIPLE_CHOICE'
+        WHEN n BETWEEN 15 AND 20 THEN 'MAP_LABELLING'
+        WHEN n BETWEEN 21 AND 24 THEN 'MULTIPLE_CHOICE'
+        WHEN n BETWEEN 25 AND 30 THEN 'MATCHING'
+        WHEN n BETWEEN 31 AND 40 THEN 'NOTE_COMPLETION'
+    END AS type,
+    CASE
+        WHEN n BETWEEN 1 AND 10 THEN 'CULTURE_ART_TRADITIONS_AND_LANGUAGE'
+        WHEN n BETWEEN 11 AND 20 THEN 'HOUSING_CITIES_AND_URBAN_RURAL_LIFE'
+        WHEN n BETWEEN 21 AND 30 THEN 'CULTURE_ART_TRADITIONS_AND_LANGUAGE'
+        WHEN n BETWEEN 31 AND 40 THEN 'FOOD_AGRICULTURE_AND_FARMING'
+    END AS topic_tag,
+    @practice_content_id AS practice_content_id
+FROM seq;
+
+INSERT INTO practice_question (
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+)
+SELECT
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+FROM tmp_practice_questions;
+
+INSERT INTO practice_question_answer (
+    practice_question_id,
+    answer_index,
+    answer_value
+)
+SELECT
+    q.practice_question_id,
+    a.answer_index,
+    a.answer_value
+FROM tmp_practice_questions q
+JOIN (
+    SELECT 1 AS order_index, 0 AS answer_index, 'Eustatis' AS answer_value
+    UNION ALL SELECT 2, 0, 'review'
+    UNION ALL SELECT 3, 0, 'dance'
+    UNION ALL SELECT 4, 0, 'Chat'
+    UNION ALL SELECT 5, 0, 'healthy'
+    UNION ALL SELECT 6, 0, 'posters'
+    UNION ALL SELECT 7, 0, 'wood'
+    UNION ALL SELECT 8, 0, 'lake'
+    UNION ALL SELECT 9, 0, 'insects'
+    UNION ALL SELECT 10, 0, 'blog'
+    UNION ALL SELECT 11, 0, 'C'
+    UNION ALL SELECT 12, 0, 'A'
+    UNION ALL SELECT 13, 0, 'B'
+    UNION ALL SELECT 14, 0, 'C'
+    UNION ALL SELECT 15, 0, 'E'
+    UNION ALL SELECT 16, 0, 'C'
+    UNION ALL SELECT 17, 0, 'B'
+    UNION ALL SELECT 18, 0, 'A'
+    UNION ALL SELECT 19, 0, 'G'
+    UNION ALL SELECT 20, 0, 'D'
+
+    -- Questions 21 and 22: B and D are accepted in either order.
+    UNION ALL SELECT 21, 0, 'B'
+    UNION ALL SELECT 21, 1, 'D'
+    UNION ALL SELECT 22, 0, 'B'
+    UNION ALL SELECT 22, 1, 'D'
+
+    -- Questions 23 and 24: B and C are accepted in either order.
+    UNION ALL SELECT 23, 0, 'B'
+    UNION ALL SELECT 23, 1, 'C'
+    UNION ALL SELECT 24, 0, 'B'
+    UNION ALL SELECT 24, 1, 'C'
+
+    UNION ALL SELECT 25, 0, 'G'
+    UNION ALL SELECT 26, 0, 'B'
+    UNION ALL SELECT 27, 0, 'D'
+    UNION ALL SELECT 28, 0, 'C'
+    UNION ALL SELECT 29, 0, 'H'
+    UNION ALL SELECT 30, 0, 'F'
+    UNION ALL SELECT 31, 0, 'irrigation'
+    UNION ALL SELECT 32, 0, 'women'
+    UNION ALL SELECT 33, 0, 'wire'
+    UNION ALL SELECT 33, 1, 'wires'
+    UNION ALL SELECT 34, 0, 'seed'
+    UNION ALL SELECT 34, 1, 'seeds'
+    UNION ALL SELECT 35, 0, 'posts'
+    UNION ALL SELECT 36, 0, 'transport'
+    UNION ALL SELECT 37, 0, 'preservation'
+    UNION ALL SELECT 38, 0, 'fish'
+    UNION ALL SELECT 38, 1, 'fishes'
+    UNION ALL SELECT 39, 0, 'bees'
+    UNION ALL SELECT 40, 0, 'design'
+) a
+    ON a.order_index = q.order_index;
+
+UPDATE practice_content
+SET question_count = 40
+WHERE practice_content_id = @practice_content_id;
+
+DROP TEMPORARY TABLE tmp_old_practice_questions;
+DROP TEMPORARY TABLE tmp_practice_questions;
+
+COMMIT;

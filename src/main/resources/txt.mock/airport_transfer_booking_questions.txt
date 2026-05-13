@@ -1,0 +1,134 @@
+USE ielts_mastermind_db;
+
+SET @practice_content_id = '9816ec8b-cbab-4954-9ec6-f93dc06807de';
+
+START TRANSACTION;
+
+DROP TEMPORARY TABLE IF EXISTS tmp_old_practice_questions;
+DROP TEMPORARY TABLE IF EXISTS tmp_practice_questions;
+
+CREATE TEMPORARY TABLE tmp_old_practice_questions AS
+SELECT practice_question_id
+FROM practice_question
+WHERE practice_content_id = @practice_content_id;
+
+DELETE FROM practice_question_answer
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+DELETE FROM practice_question
+WHERE practice_question_id IN (
+    SELECT practice_question_id
+    FROM tmp_old_practice_questions
+);
+
+CREATE TEMPORARY TABLE tmp_practice_questions AS
+WITH RECURSIVE seq(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1
+    FROM seq
+    WHERE n < 40
+)
+SELECT
+    UUID() AS practice_question_id,
+    n AS order_index,
+    CASE
+        WHEN n BETWEEN 1 AND 10 THEN 'NOTE_COMPLETION'
+        WHEN n BETWEEN 11 AND 14 THEN 'MULTIPLE_CHOICE'
+        WHEN n BETWEEN 15 AND 20 THEN 'TABLE_COMPLETION'
+        WHEN n BETWEEN 21 AND 26 THEN 'MATCHING'
+        WHEN n BETWEEN 27 AND 30 THEN 'MULTIPLE_CHOICE'
+        WHEN n BETWEEN 31 AND 40 THEN 'NOTE_COMPLETION'
+    END AS type,
+    CASE
+        WHEN n BETWEEN 1 AND 10 THEN 'WORK_JOBS_AND_CAREERS'
+        WHEN n BETWEEN 11 AND 20 THEN 'TRAVEL_TOURISM_AND_TRANSPORT'
+        WHEN n BETWEEN 21 AND 30 THEN 'FAMILY_CHILDREN_AND_AGEING'
+        WHEN n BETWEEN 31 AND 40 THEN 'ENVIRONMENT_CLIMATE_AND_SUSTAINABILITY'
+    END AS topic_tag,
+    @practice_content_id AS practice_content_id
+FROM seq;
+
+INSERT INTO practice_question (
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+)
+SELECT
+    practice_question_id,
+    order_index,
+    type,
+    topic_tag,
+    practice_content_id
+FROM tmp_practice_questions;
+
+INSERT INTO practice_question_answer (
+    practice_question_id,
+    answer_index,
+    answer_value
+)
+SELECT
+    q.practice_question_id,
+    a.answer_index,
+    a.answer_value
+FROM tmp_practice_questions q
+JOIN (
+    SELECT 1 AS order_index, 0 AS answer_index, 'Jamieson' AS answer_value
+    UNION ALL SELECT 2, 0, 'afternoon'
+    UNION ALL SELECT 3, 0, 'communication'
+    UNION ALL SELECT 4, 0, 'week'
+    UNION ALL SELECT 5, 0, '10'
+    UNION ALL SELECT 5, 1, 'ten'
+    UNION ALL SELECT 6, 0, 'suit'
+    UNION ALL SELECT 7, 0, 'passport'
+    UNION ALL SELECT 8, 0, 'personality'
+    UNION ALL SELECT 9, 0, 'feedback'
+    UNION ALL SELECT 10, 0, 'time'
+    UNION ALL SELECT 11, 0, 'A'
+    UNION ALL SELECT 12, 0, 'B'
+    UNION ALL SELECT 13, 0, 'A'
+    UNION ALL SELECT 14, 0, 'C'
+    UNION ALL SELECT 15, 0, 'river'
+    UNION ALL SELECT 16, 0, '1422'
+    UNION ALL SELECT 17, 0, 'top'
+    UNION ALL SELECT 18, 0, 'pass'
+    UNION ALL SELECT 19, 0, 'steam'
+    UNION ALL SELECT 20, 0, 'capital'
+    UNION ALL SELECT 21, 0, 'G'
+    UNION ALL SELECT 22, 0, 'F'
+    UNION ALL SELECT 23, 0, 'A'
+    UNION ALL SELECT 24, 0, 'E'
+    UNION ALL SELECT 25, 0, 'B'
+    UNION ALL SELECT 26, 0, 'C'
+    UNION ALL SELECT 27, 0, 'C'
+    UNION ALL SELECT 28, 0, 'A'
+    UNION ALL SELECT 29, 0, 'B'
+    UNION ALL SELECT 30, 0, 'D'
+    UNION ALL SELECT 31, 0, 'shelter'
+    UNION ALL SELECT 32, 0, 'oil'
+    UNION ALL SELECT 33, 0, 'roads'
+    UNION ALL SELECT 34, 0, 'insects'
+    UNION ALL SELECT 35, 0, 'grass'
+    UNION ALL SELECT 35, 1, 'grasses'
+    UNION ALL SELECT 36, 0, 'water'
+    UNION ALL SELECT 37, 0, 'soil'
+    UNION ALL SELECT 38, 0, 'dry'
+    UNION ALL SELECT 39, 0, 'simple'
+    UNION ALL SELECT 40, 0, 'nest'
+    UNION ALL SELECT 40, 1, 'nests'
+) a
+    ON a.order_index = q.order_index;
+
+UPDATE practice_content
+SET question_count = 40
+WHERE practice_content_id = @practice_content_id;
+
+DROP TEMPORARY TABLE tmp_old_practice_questions;
+DROP TEMPORARY TABLE tmp_practice_questions;
+
+COMMIT;
