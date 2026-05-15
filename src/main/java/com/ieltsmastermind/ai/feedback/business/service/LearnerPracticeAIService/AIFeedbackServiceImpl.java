@@ -32,7 +32,7 @@ public class AIFeedbackServiceImpl {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
 
-    public  String callAI(String prompt) {
+    public String callAI(String prompt) {
 
         Map<String, Object> body = Map.of(
                 "model", "gpt-4o-mini",
@@ -41,10 +41,11 @@ public class AIFeedbackServiceImpl {
                         Map.of("role", "user", "content", prompt)
                 ),
                 "temperature", 0.2,
+                "max_tokens", 4000,
                 "response_format", Map.of("type", "json_object")
         );
 
-        return webClient.post()
+        String response = webClient.post()
                 .uri("/chat/completions")
                 .bodyValue(body)
                 .retrieve()
@@ -55,6 +56,10 @@ public class AIFeedbackServiceImpl {
                 )
                 .bodyToMono(String.class)
                 .block(Duration.ofSeconds(80));
+
+        logTokenUsage(response);
+
+        return response;
     }
 
     public String callAIWithImages(String prompt, List<String> imageUrls) {
@@ -156,6 +161,7 @@ public class AIFeedbackServiceImpl {
                     );
                 }
             }
+
             return response;
 
         } catch (Exception e) {
@@ -261,6 +267,28 @@ public class AIFeedbackServiceImpl {
             return callAI(prompt);
         }
         return callAIWithImages(prompt, publicUrls);
+    }
+
+
+    public void logTokenUsage(String response) {
+        try {
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode usage = root.path("usage");
+
+            int promptTokens = usage.path("prompt_tokens").asInt();
+            int completionTokens = usage.path("completion_tokens").asInt();
+            int totalTokens = usage.path("total_tokens").asInt();
+
+            System.out.println("========== TOKEN USAGE ==========");
+            System.out.println("Request Tokens (Prompt): " + promptTokens);
+            System.out.println("Response Tokens (Completion): " + completionTokens);
+            System.out.println("Total Tokens: " + totalTokens);
+            System.out.println("=================================");
+
+        } catch (Exception e) {
+            System.out.println("Cannot parse token usage");
+            e.printStackTrace();
+        }
     }
 
 

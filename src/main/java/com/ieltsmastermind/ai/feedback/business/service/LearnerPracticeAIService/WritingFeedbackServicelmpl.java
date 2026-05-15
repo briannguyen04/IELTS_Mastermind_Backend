@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 @Service
 public class WritingFeedbackServicelmpl implements WritingFeedbackService {
     @Autowired
-     private AIFeedbackServiceImpl aiService;
+    private AIFeedbackServiceImpl aiService;
 
     @Autowired
     private UserPracticeSubmissionRepository submissionRepository;
@@ -284,13 +284,7 @@ public class WritingFeedbackServicelmpl implements WritingFeedbackService {
         return """
 You are an IELTS Writing examiner.
 
-You must analyze each essay and generate structured feedback.
-
-========================
-STRICT OUTPUT FORMAT
-========================
-
-Return STRICT JSON ONLY:
+Return STRICT JSON ONLY (no extra text):
 
 {
   "answers": [
@@ -299,7 +293,7 @@ Return STRICT JSON ONLY:
       "feedbacks": [
         {
           "criterionName": "...",
-          "feedbackType": "...",
+          "feedbackType": "STRENGTH|WEAKNESS",
           "label": "...",
           "description": "...",
           "explanation": "...",
@@ -313,343 +307,108 @@ Return STRICT JSON ONLY:
 }
 
 ========================
-TASK TYPE RULE (CRITICAL)
+CRITICAL RULES
 ========================
 
-Each essay includes a field "taskType":
+1. TASK TYPE:
+- TASK_1 → use TASK_ACHIEVEMENT only
+- TASK_2 → use TASK_RESPONSE only
+- NEVER mix
 
-- TASK_1 → you MUST use TASK_ACHIEVEMENT
-- TASK_2 → you MUST use TASK_RESPONSE
-
-CRITICAL:
-- If taskType = TASK_1 → DO NOT use TASK_RESPONSE
-- If taskType = TASK_2 → DO NOT use TASK_ACHIEVEMENT
-- Use taskType as the ONLY source of truth. DO NOT guess.
-
-========================
-STRUCTURE RULES
-========================
-
-For EACH answer:
-
-1. Generate feedback items BASED ON essay quality
-- Good essay → up to 32 items
-- Poor/very short essay → fewer items are allowed
-
-2. ORDER (STRICT):
-
-- First 8:
-  TASK_ACHIEVEMENT (Task 1) OR TASK_RESPONSE (Task 2)
-
-- Next 8:
-  COHERENCE_AND_COHESION
-
-- Next 8:
-  LEXICAL_RESOURCE
-
-- Last 8:
-  GRAMMATICAL_RANGE_AND_ACCURACY
-
-3. Each group of 8:
-- First 4 → STRENGTH
-- Last 4 → WEAKNESS
-
-========================
-LABEL SELECTION RULES
-========================
-
-You MUST select labels ONLY from the lists below.
-
-IMPORTANT:
-- If feedbackType = STRENGTH → use LEFT side of arrow
-- If feedbackType = WEAKNESS → use RIGHT side of arrow
-
-------------------------
-TASK (Task 1 + Task 2)
-------------------------
-
-FULL_TASK_COVERAGE -> PARTIAL_TASK_COVERAGE
-CLEAR_POSITION -> UNCLEAR_POSITION
-CONSISTENT_POSITION -> INCONSISTENT_POSITION
-RELEVANT_IDEAS -> IRRELEVANT_IDEAS
-GOOD_IDEA_DEVELOPMENT -> INSUFFICIENT_IDEA_DEVELOPMENT
-ADEQUATE_SUPPORT -> INSUFFICIENT_SUPPORT
-APPROPRIATE_FORMAT -> INAPPROPRIATE_FORMAT
-SUFFICIENT_LENGTH -> UNDER_LENGTH_RESPONSE
-
-------------------------
-TASK 1 ONLY
-------------------------
-
-CLEAR_OVERVIEW -> MISSING_OVERVIEW
-GOOD_KEY_FEATURE_SELECTION -> MISSING_KEY_FEATURES
-GOOD_DATA_SUPPORT -> INSUFFICIENT_DATA_SUPPORT
-
-------------------------
-TASK 2 ONLY
-------------------------
-
-CLEAR_CONCLUSION -> WEAK_CONCLUSION
-
-------------------------
-COHERENCE & COHESION
-------------------------
-
-LOGICAL_ORGANISATION -> WEAK_ORGANISATION
-CLEAR_PROGRESSION -> UNCLEAR_PROGRESSION
-EFFECTIVE_PARAGRAPHING -> WEAK_PARAGRAPHING
-EFFECTIVE_COHESIVE_DEVICES -> MISUSED_COHESIVE_DEVICES
-NATURAL_LINKER_USE -> OVERUSE_OF_LINKERS
-GOOD_REFERENCE_USE -> UNCLEAR_REFERENCING
-MINIMAL_REPETITION -> REPETITION
-CLEAR_PARAGRAPH_FOCUS -> UNCLEAR_PARAGRAPH_FOCUS
-
-------------------------
-LEXICAL RESOURCE
-------------------------
-
-VARIED_VOCABULARY -> LIMITED_VOCABULARY
-PRECISE_VOCABULARY -> IMPRECISE_VOCABULARY
-APPROPRIATE_WORD_CHOICE -> INAPPROPRIATE_WORD_CHOICE
-GOOD_COLLOCATION -> WEAK_COLLOCATION
-APPROPRIATE_STYLE -> STYLE_INAPPROPRIATE
-GOOD_SPELLING -> SPELLING_ERRORS
-GOOD_WORD_FORMATION -> WORD_FORMATION_ERRORS
-NATURAL_LANGUAGE_USE -> MEMORISED_LANGUAGE_OVERUSE
-
-------------------------
-GRAMMAR
-------------------------
-
-VARIED_SENTENCE_STRUCTURES -> LIMITED_GRAMMATICAL_RANGE
-GOOD_COMPLEX_STRUCTURE_USE -> FAULTY_COMPLEX_SENTENCES
-GRAMMAR_WELL_CONTROLLED -> GRAMMAR_ERRORS
-GOOD_PUNCTUATION -> PUNCTUATION_ERRORS
-WELL_FORMED_SENTENCES -> SENTENCE_FRAGMENT_OR_RUN_ON
-
-========================
-EVIDENCE RULES
-========================
-
-- evidenceSentences MUST be exact sentences from essay
-- DO NOT paraphrase
-- DO NOT invent
-
-========================
-WRITING RULES
-========================
-
-- description: short feedback
-- explanation: why it is good or bad
-- recommendedActionDescription: what to improve
-- recommendedActionExplanation: how to improve
-
-========================
-STRICT CONSTRAINTS
-========================
-
-CRITERION NAME ENUM RULE (VERY IMPORTANT)
-
-criterionName MUST be EXACTLY one of:
-
+2. CRITERION ENUM (EXACT MATCH):
 - TASK_RESPONSE
 - TASK_ACHIEVEMENT
 - COHERENCE_AND_COHESION
 - LEXICAL_RESOURCE
 - GRAMMATICAL_RANGE_AND_ACCURACY
 
-Rules:
-- If taskType = TASK_1, use TASK_ACHIEVEMENT for task-related feedback.
-- If taskType = TASK_2, use TASK_RESPONSE for task-related feedback.
-- For coherence feedback, use COHERENCE_AND_COHESION.
-- For vocabulary feedback, use LEXICAL_RESOURCE.
-- For grammar feedback, use GRAMMATICAL_RANGE_AND_ACCURACY.
+3. STRUCTURE (STRICT ORDER):
+Per answer → up to 32 feedbacks:
 
-ENUM STRICT MATCHING RULE (VERY IMPORTANT)
+- First 8: TASK (TASK_1 → TASK_ACHIEVEMENT, TASK_2 → TASK_RESPONSE)
+- Next 8: COHERENCE_AND_COHESION
+- Next 8: LEXICAL_RESOURCE
+- Last 8: GRAMMATICAL_RANGE_AND_ACCURACY
 
-- All enum values MUST match EXACTLY the provided labels.
-- DO NOT change formatting, spelling, or structure.
-- DO NOT remove or add underscores.
-- DO NOT use spaces instead of underscores.
+Each group:
+- First 4 → STRENGTH
+- Last 4 → WEAKNESS
 
-    Example:
-    CORRECT: UNDER_LENGTH_RESPONSE
-    WRONG: UnderLengthResponse
-    WRONG: UNDER LENGTH RESPONSE
-    WRONG: under_length_response
+4. LABEL RULE:
+- MUST use EXACT labels below
+- STRENGTH → left side
+- WEAKNESS → right side
 
-- DO NOT change order
-- SHOULD return up to 32 items if possible
-- DO NOT force fake feedback if essay lacks content
-- MUST follow structure exactly
-- NO extra text outside JSON
+TASK:
+FULL_TASK_COVERAGE|PARTIAL_TASK_COVERAGE
+CLEAR_POSITION|UNCLEAR_POSITION
+CONSISTENT_POSITION|INCONSISTENT_POSITION
+RELEVANT_IDEAS|IRRELEVANT_IDEAS
+GOOD_IDEA_DEVELOPMENT|INSUFFICIENT_IDEA_DEVELOPMENT
+ADEQUATE_SUPPORT|INSUFFICIENT_SUPPORT
+APPROPRIATE_FORMAT|INAPPROPRIATE_FORMAT
+SUFFICIENT_LENGTH|UNDER_LENGTH_RESPONSE
 
-========================
-LOW QUALITY ESSAY RULE
-========================
+TASK 1 ONLY:
+CLEAR_OVERVIEW|MISSING_OVERVIEW
+GOOD_KEY_FEATURE_SELECTION|MISSING_KEY_FEATURES
+GOOD_DATA_SUPPORT|INSUFFICIENT_DATA_SUPPORT
 
-If the essay is extremely short, meaningless, or invalid (e.g. random text, "test", etc.):
+TASK 2 ONLY:
+CLEAR_CONCLUSION|WEAK_CONCLUSION
 
-- DO NOT force full feedback
-- Generate ONLY relevant WEAKNESS feedback
-- You MAY return fewer than 32 items
-- Focus on major issues:
-  - UNDER_LENGTH_RESPONSE
-  - INSUFFICIENT_IDEA_DEVELOPMENT
-  - UNCLEAR_POSITION
-  - LIMITED_VOCABULARY
-  - GRAMMAR_ERRORS
+COHERENCE:
+LOGICAL_ORGANISATION|WEAK_ORGANISATION
+CLEAR_PROGRESSION|UNCLEAR_PROGRESSION
+EFFECTIVE_PARAGRAPHING|WEAK_PARAGRAPHING
+EFFECTIVE_COHESIVE_DEVICES|MISUSED_COHESIVE_DEVICES
+NATURAL_LINKER_USE|OVERUSE_OF_LINKERS
+GOOD_REFERENCE_USE|UNCLEAR_REFERENCING
+MINIMAL_REPETITION|REPETITION
+CLEAR_PARAGRAPH_FOCUS|UNCLEAR_PARAGRAPH_FOCUS
 
-- Evidence sentences can reuse the original text if necessary
+LEXICAL:
+VARIED_VOCABULARY|LIMITED_VOCABULARY
+PRECISE_VOCABULARY|IMPRECISE_VOCABULARY
+APPROPRIATE_WORD_CHOICE|INAPPROPRIATE_WORD_CHOICE
+GOOD_COLLOCATION|WEAK_COLLOCATION
+APPROPRIATE_STYLE|STYLE_INAPPROPRIATE
+GOOD_SPELLING|SPELLING_ERRORS
+GOOD_WORD_FORMATION|WORD_FORMATION_ERRORS
+NATURAL_LANGUAGE_USE|MEMORISED_LANGUAGE_OVERUSE
 
-- NEVER fabricate complex strengths for invalid essays
+GRAMMAR:
+VARIED_SENTENCE_STRUCTURES|LIMITED_GRAMMATICAL_RANGE
+GOOD_COMPLEX_STRUCTURE_USE|FAULTY_COMPLEX_SENTENCES
+GRAMMAR_WELL_CONTROLLED|GRAMMAR_ERRORS
+GOOD_PUNCTUATION|PUNCTUATION_ERRORS
+WELL_FORMED_SENTENCES|SENTENCE_FRAGMENT_OR_RUN_ON
 
-========================
-EXAMPLE
-========================
+5. EVIDENCE:
+- MUST be exact sentences from essay
+- NO paraphrase
 
-{
-  "answers": [
-    {
-      "orderIndex": 1,
-      "feedbacks": [
-        {
-          "criterionName": "TASK_RESPONSE",
-          "feedbackType": "STRENGTH",
-          "label": "FULL_TASK_COVERAGE",
-          "description": "The essay fully addresses all parts of the task.",
-          "explanation": "All aspects of the question are covered with relevant responses.",
-          "evidenceSentences": ["This essay discusses both advantages and disadvantages in detail."],
-          "recommendedActionDescription": "Continue maintaining full coverage of all task parts.",
-          "recommendedActionExplanation": "Ensure every future response answers all aspects clearly."
-        },
-        {
-          "criterionName": "TASK_RESPONSE",
-          "feedbackType": "STRENGTH",
-          "label": "CLEAR_POSITION",
-          "description": "The writer presents a clear position throughout the essay.",
-          "explanation": "The opinion is easy to identify and consistently maintained.",
-          "evidenceSentences": ["I strongly believe that this approach is beneficial."],
-          "recommendedActionDescription": "Maintain a clear and direct position in all essays.",
-          "recommendedActionExplanation": "State your opinion early and reinforce it in each paragraph."
-        },
-        {
-          "criterionName": "TASK_RESPONSE",
-          "feedbackType": "STRENGTH",
-          "label": "RELEVANT_IDEAS",
-          "description": "Ideas are relevant to the topic.",
-          "explanation": "All arguments directly relate to the question.",
-          "evidenceSentences": ["One key advantage is the improvement in productivity."],
-          "recommendedActionDescription": "Keep focusing on relevant ideas.",
-          "recommendedActionExplanation": "Avoid adding unrelated points."
-        },
-        {
-          "criterionName": "TASK_RESPONSE",
-          "feedbackType": "STRENGTH",
-          "label": "ADEQUATE_SUPPORT",
-          "description": "Ideas are supported with explanations.",
-          "explanation": "Each point is explained clearly with supporting detail.",
-          "evidenceSentences": ["For example, companies can reduce costs by automating tasks."],
-          "recommendedActionDescription": "Continue providing supporting explanations.",
-          "recommendedActionExplanation": "Always expand on your ideas with examples."
-        },
+6. LOW QUALITY ESSAY:
+- May return fewer items
+- Focus on major weaknesses only
+- DO NOT fabricate strengths
 
-        {
-          "criterionName": "TASK_RESPONSE",
-          "feedbackType": "WEAKNESS",
-          "label": "INSUFFICIENT_IDEA_DEVELOPMENT",
-          "description": "Some ideas are not fully developed.",
-          "explanation": "Certain arguments lack depth and detail.",
-          "evidenceSentences": ["Technology is important for society."],
-          "recommendedActionDescription": "Develop ideas more thoroughly.",
-          "recommendedActionExplanation": "Add explanations and examples to each main point."
-        },
-        {
-          "criterionName": "TASK_RESPONSE",
-          "feedbackType": "WEAKNESS",
-          "label": "INSUFFICIENT_SUPPORT",
-          "description": "Some points lack supporting evidence.",
-          "explanation": "Statements are made without examples.",
-          "evidenceSentences": ["This is a major issue nowadays."],
-          "recommendedActionDescription": "Provide more supporting examples.",
-          "recommendedActionExplanation": "Use real-life examples or explanations."
-        },
-        {
-          "criterionName": "TASK_RESPONSE",
-          "feedbackType": "WEAKNESS",
-          "label": "UNCLEAR_POSITION",
-          "description": "Position is not always clear.",
-          "explanation": "The stance becomes unclear in some parts.",
-          "evidenceSentences": ["Some people think this is good, while others disagree."],
-          "recommendedActionDescription": "Clarify your position.",
-          "recommendedActionExplanation": "Restate your opinion clearly in each paragraph."
-        },
-        {
-          "criterionName": "TASK_RESPONSE",
-          "feedbackType": "WEAKNESS",
-          "label": "UNDER_LENGTH_RESPONSE",
-          "description": "The response is shorter than required.",
-          "explanation": "The essay does not meet the minimum word count.",
-          "evidenceSentences": ["(Essay ends prematurely)"],
-          "recommendedActionDescription": "Write a longer response.",
-          "recommendedActionExplanation": "Aim for at least 250 words."
-        },
-
-        {
-          "criterionName": "COHERENCE_AND_COHESION",
-          "feedbackType": "STRENGTH",
-          "label": "LOGICAL_ORGANISATION",
-          "description": "The essay is logically organised.",
-          "explanation": "Ideas are presented in a clear sequence.",
-          "evidenceSentences": ["Firstly, ..., Secondly, ..., Finally, ..."],
-          "recommendedActionDescription": "Maintain logical organisation.",
-          "recommendedActionExplanation": "Keep structuring ideas clearly."
-        }
-
-        // ... (remaining items follow the same pattern)
-        // You MUST continue this pattern until there are EXACTLY 32 items.
-        // Distribution MUST be:
-        // - First 8: TASK (Task Achievement or Task Response depending on taskType)
-        // - Next 8: COHERENCE_AND_COHESION
-        // - Next 8: LEXICAL_RESOURCE
-        // - Last 8: GRAMMATICAL_RANGE_AND_ACCURACY
-      ]
-    }
-  ]
-}
+7. GENERAL:
+- Keep same orderIndex
+- Do NOT change ids/labels
+- No hallucination
+- No extra text outside JSON
 
 ========================
 INPUT
 ========================
-========================
-INPUT EXPLANATION
-========================
 
-You will receive a list of student essays in JSON format.
+Title: %s
+Instruction: %s
+TimeSpent: %d
 
-Each essay has:
-
-- orderIndex: the position of the essay (used to match output)
-- taskType: either TASK_1 or TASK_2
-- essayText: the student's full essay
-- wordCount: number of words in the essay
-
-You MUST:
-- keep the same orderIndex in your response
-
-Title:
+Essays:
 %s
-
-Instruction:
-%s
-
-Time spent (seconds):
-%d
-
-Student Essays:
-%s
-
-
 """.formatted(
                 title,
                 aiService.normalizeInstruction(instruction),
@@ -687,7 +446,11 @@ Student Essays:
         while (attempt < maxAttempts) {
             try {
                 attempt++;
-
+                System.out.println("========== PROMPT ==========");
+                System.out.println(retryPrompt);
+                System.out.println("Prompt length = " + retryPrompt.length());
+                System.out.println("Estimated tokens = " + (retryPrompt.length() / 4));
+                System.out.println("============================");
                 String rawResponse = aiService.callAIUnified(retryPrompt, publicUrls);
 
                 log.info("AI attempt {} success", attempt);

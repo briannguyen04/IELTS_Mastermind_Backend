@@ -37,15 +37,32 @@ public class OpenAIClient {
                         Map.of("role", "user", "content", prompt)
                 ),
                 "temperature", 0.3,
+                "max_tokens", 2000,
                 "response_format", Map.of("type", "json_object")
         );
 
-        return webClient.post()
+        String response = webClient.post()
                 .uri("/chat/completions")
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block(Duration.ofSeconds(30));
+
+        try {
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode usage = root.path("usage");
+
+            log.info("========== TOKEN USAGE ==========");
+            log.info("Request Tokens (Prompt): {}", usage.path("prompt_tokens").asInt());
+            log.info("Response Tokens (Completion): {}", usage.path("completion_tokens").asInt());
+            log.info("Total Tokens: {}", usage.path("total_tokens").asInt());
+            log.info("=================================");
+
+        } catch (Exception e) {
+            log.warn("Cannot parse token usage");
+        }
+
+        return response;
     }
 
     private StudyPlanAIResponse parse(String json) {
@@ -145,130 +162,27 @@ public class OpenAIClient {
     ) {
         try {
 
-            String metricName = isWriting
-                    ? "overallBandScore"
-                    : "correctRate";
-
-            String metricExplanation = isWriting
-                    ? """
-- overallBandScore: learner's overall writing tutor band score
-
-Interpretation:
-- Low overallBandScore → weak writing performance and language control
-- High overallBandScore → strong writing ability and better task achievement
-"""
-                    : """
-- correctRate: ratio of (correct answers / total questions attempted)
-
-Interpretation:
-- Low correctRate → overall weak understanding
-- High correctRate → strong overall mastery
-""";
+            String metricName = isWriting ? "overallBandScore" : "correctRate";
 
             String prompt = """
-You are a senior IELTS coach and learning strategist.
+You are an IELTS coach.
 
-You are working inside an AI-powered IELTS training platform.
+Your task is to analyze a learner's study plan and return structured JSON feedback.
 
-Your role is to analyze a learner's study plan and generate structured feedback.
+INPUT:
+- weaknesses: areas learner struggles
+- strengths: areas learner performs well
+- tasks: practice activities with learning trend (INCREASE, REDUCE)
 
-====================================
-SYSTEM CONTEXT (IMPORTANT)
-====================================
+RULES:
+- Keep responses concise, specific, and actionable
+- Use %s as evidence when relevant
+- Adjust task descriptions based on trend:
+  - IMPROVING → increase difficulty
+  - DECLINING → reinforce fundamentals
+  - STABLE → maintain and optimize
 
-The platform tracks learner performance across:
-
-- QUESTION TYPES 
-- TOPIC TAGS (e.g. EDUCATION, ENVIRONMENT, TECHNOLOGY)
-
-Each learner has:
-
-- Weakness blocks → areas they struggle with
-- Strength blocks → areas they perform well
-- Tasks → practice activities assigned to improve performance
-
-====================================
-INPUT DATA EXPLANATION
-====================================
-
-You will receive 3 datasets:
-
-1. WEAKNESSES
-Each item contains:
-- id: unique identifier (MUST be preserved)
-- focusType: QUESTION_TYPE or TOPIC
-- questionType / topicTag
-- %s
-
-%s
-
-------------------------------------
-
-2. STRENGTHS
-Same structure as weaknesses.
-
-------------------------------------
-
-3. TASKS
-Each item contains:
-- id: unique identifier (MUST be preserved)
-- focusType
-- questionType / topicTag
-- direction: learning trend of the learner in this area
-
-IMPORTANT ABOUT "direction":
-- Indicates learning progression trend over time
-- Possible meanings:
-  - IMPROVING → learner is getting better
-  - DECLINING → performance is getting worse
-  - STABLE → performance is consistent
-- You MUST use this to adjust task difficulty and focus
-- Example:
-  - IMPROVING → increase difficulty gradually
-  - DECLINING → reinforce fundamentals first
-  - STABLE → maintain + optimize performance
-
-====================================
-YOUR GOALS
-====================================
-
-1. WEAKNESSES
-For each weakness:
-- Identify the core issue
-- Explain WHY the learner struggles
-- Use %s as evidence
-- Provide actionable improvement strategy
-
-------------------------------------
-
-2. STRENGTHS
-For each strength:
-- Explain WHY the learner performs well
-- Reinforce successful learning behaviors
-- Suggest how to maintain or further leverage this strength
-
-------------------------------------
-
-3. TASKS (CRITICAL)
-For each task:
-- Generate a clear and concise description based ONLY on the provided data
-
-====================================
-WRITING STYLE RULES
-====================================
-
-- Be concise but insightful
-- Avoid generic advice
-- Use educational and analytical tone
-- Focus on actionable feedback
-- No filler sentences
-
-====================================
-STRICT OUTPUT FORMAT (MUST FOLLOW)
-====================================
-
-Return ONLY valid JSON:
-
+OUTPUT FORMAT (STRICT JSON ONLY):
 {
   "weaknesses": [
     {
@@ -296,32 +210,16 @@ Return ONLY valid JSON:
   ]
 }
 
-====================================
-CRITICAL CONSTRAINTS
-====================================
+CONSTRAINTS:
+- Do NOT change ids
+- Do NOT skip any item
+- Do NOT add text outside JSON
 
-- DO NOT change any id
-- DO NOT skip any item
-- DO NOT add extra text outside JSON
-- DO NOT hallucinate missing fields
-- ALWAYS use provided data exactly
-- MUST follow JSON format strictly
-
-====================================
-INPUT DATA
-====================================
-
-WEAKNESSES:
-%s
-
-STRENGTHS:
-%s
-
-TASKS:
-%s
+DATA:
+WEAKNESSES: %s
+STRENGTHS: %s
+TASKS: %s
 """.formatted(
-                    metricName,
-                    metricExplanation,
                     metricName,
                     objectMapper.writeValueAsString(weaknesses),
                     objectMapper.writeValueAsString(strengths),
