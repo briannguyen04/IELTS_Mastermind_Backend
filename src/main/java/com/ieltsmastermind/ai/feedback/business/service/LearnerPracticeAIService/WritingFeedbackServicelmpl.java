@@ -446,11 +446,11 @@ Essays:
         while (attempt < maxAttempts) {
             try {
                 attempt++;
-                System.out.println("========== PROMPT ==========");
-                System.out.println(retryPrompt);
-                System.out.println("Prompt length = " + retryPrompt.length());
-                System.out.println("Estimated tokens = " + (retryPrompt.length() / 4));
-                System.out.println("============================");
+//                System.out.println("========== PROMPT ==========");
+//                System.out.println(retryPrompt);
+//                System.out.println("Prompt length = " + retryPrompt.length());
+//                System.out.println("Estimated tokens = " + (retryPrompt.length() / 4));
+//                System.out.println("============================");
                 String rawResponse = aiService.callAIUnified(retryPrompt, publicUrls);
 
                 log.info("AI attempt {} success", attempt);

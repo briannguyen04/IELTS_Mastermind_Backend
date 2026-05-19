@@ -25,7 +25,7 @@ public class OpenAIConfig {
         }
 
         return WebClient.builder()
-                .baseUrl("https://openrouter.ai/api/v1")
+                .baseUrl("https://api.openai.com/v1")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .defaultHeader("HTTP-Referer", "http://localhost:8080")

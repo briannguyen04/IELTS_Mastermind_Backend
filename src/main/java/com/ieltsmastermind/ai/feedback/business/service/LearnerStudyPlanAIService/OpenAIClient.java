@@ -9,6 +9,7 @@ import com.ieltsmastermind.ai.feedback.domain.entity.AIInput;
 import com.ieltsmastermind.ai.feedback.domain.entity.AIOutput;
 import com.ieltsmastermind.practice.studyplan.management.domain.enums.LearnerStudyPlanFocusType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -28,10 +29,12 @@ public class OpenAIClient {
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
     private static final Logger log = LoggerFactory.getLogger(OpenAIClient.class);
+    @Value("${openai.model}")
+    private String model;
 
     private String callRawAI(String prompt) {
         Map<String, Object> body = Map.of(
-                "model", "gpt-4o-mini",
+                "model", model,
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are an IELTS coach."),
                         Map.of("role", "user", "content", prompt)

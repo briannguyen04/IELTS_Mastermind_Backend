@@ -31,11 +31,14 @@ public class AIFeedbackServiceImpl {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Value("${openai.model}")
+    private String model;
+
 
     public String callAI(String prompt) {
 
         Map<String, Object> body = Map.of(
-                "model", "gpt-4o-mini",
+                "model", model,
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are an IELTS examiner."),
                         Map.of("role", "user", "content", prompt)
@@ -57,7 +60,6 @@ public class AIFeedbackServiceImpl {
                 .bodyToMono(String.class)
                 .block(Duration.ofSeconds(80));
 
-        logTokenUsage(response);
 
         return response;
     }
@@ -86,7 +88,7 @@ public class AIFeedbackServiceImpl {
         );
 
         Map<String, Object> body = Map.of(
-                "model", "gpt-4o-mini",
+                "model", model,
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are an IELTS examiner."),
                         message
