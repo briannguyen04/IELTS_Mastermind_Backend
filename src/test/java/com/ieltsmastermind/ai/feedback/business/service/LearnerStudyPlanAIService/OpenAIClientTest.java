@@ -10,6 +10,7 @@ import com.ieltsmastermind.practice.content.management.domain.enums.PracticeQues
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeTopicTag;
 import com.ieltsmastermind.practice.studyplan.management.domain.enums.LearnerStudyPlanFocusType;
 import com.ieltsmastermind.practice.studyplan.management.domain.enums.LearnerStudyPlanTaskDirection;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -17,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -29,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +55,11 @@ class OpenAIClientTest {
 
     @InjectMocks
     private OpenAIClient openAIClient;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(openAIClient, "model", "gpt-4o-mini");
+    }
 
     @Test
     void generateWithRetry_whenFirstAttemptSucceedsForListening_shouldCallAIValidateAndReturnResponse() {
@@ -82,6 +89,7 @@ class OpenAIClientTest {
 
         assertThat(body.get("model")).isEqualTo("gpt-4o-mini");
         assertThat(body.get("temperature")).isEqualTo(0.3);
+        assertThat(body.get("max_tokens")).isEqualTo(2000);
         assertThat(castMap(body.get("response_format")).get("type")).isEqualTo("json_object");
 
         List<Map<String, Object>> messages = castList(body.get("messages"));
@@ -91,12 +99,18 @@ class OpenAIClientTest {
         assertThat(messages.get(1).get("role")).isEqualTo("user");
 
         String prompt = messages.get(1).get("content").toString();
-        assertThat(prompt).contains("correctRate");
-        assertThat(prompt).contains("ratio of (correct answers / total questions attempted)");
+        assertThat(prompt).contains("Your task is to analyze a learner's study plan");
+        assertThat(prompt).contains("Use correctRate as evidence when relevant");
+        assertThat(prompt).contains("OUTPUT FORMAT (STRICT JSON ONLY)");
+        assertThat(prompt).contains("Do NOT change ids");
+        assertThat(prompt).contains("Do NOT add text outside JSON");
+        assertThat(prompt).contains("WEAKNESSES:");
+        assertThat(prompt).contains("STRENGTHS:");
+        assertThat(prompt).contains("TASKS:");
         assertThat(prompt).contains("weakness-1");
         assertThat(prompt).contains("strength-1");
         assertThat(prompt).contains("task-1");
-        assertThat(prompt).doesNotContain("overallBandScore: learner's overall writing tutor band score");
+        assertThat(prompt).doesNotContain("Use overallBandScore as evidence when relevant");
 
         verify(webClient).post();
         verify(requestBodyUriSpec).uri("/chat/completions");
@@ -128,10 +142,12 @@ class OpenAIClientTest {
         List<Map<String, Object>> messages = castList(body.get("messages"));
         String prompt = messages.get(1).get("content").toString();
 
-        assertThat(prompt).contains("overallBandScore");
-        assertThat(prompt).contains("learner's overall writing tutor band score");
-        assertThat(prompt).contains("Low overallBandScore");
-        assertThat(prompt).doesNotContain("correctRate: ratio of");
+        assertThat(prompt).contains("Use overallBandScore as evidence when relevant");
+        assertThat(prompt).contains("OUTPUT FORMAT (STRICT JSON ONLY)");
+        assertThat(prompt).contains("weakness-1");
+        assertThat(prompt).contains("strength-1");
+        assertThat(prompt).contains("task-1");
+        assertThat(prompt).doesNotContain("Use correctRate as evidence when relevant");
     }
 
     @Test
@@ -156,7 +172,7 @@ class OpenAIClientTest {
         assertThat(result.getTasks()).hasSize(1);
 
         ArgumentCaptor<Object> bodyCaptor = ArgumentCaptor.forClass(Object.class);
-        verify(requestBodyUriSpec, org.mockito.Mockito.times(3)).bodyValue(bodyCaptor.capture());
+        verify(requestBodyUriSpec, times(3)).bodyValue(bodyCaptor.capture());
 
         List<Object> requestBodies = bodyCaptor.getAllValues();
 
@@ -167,10 +183,10 @@ class OpenAIClientTest {
         assertThat(firstPrompt).doesNotContain("CRITICAL: RETURN VALID JSON ONLY. NO EXTRA TEXT.");
         assertThat(secondPrompt).contains("CRITICAL: RETURN VALID JSON ONLY. NO EXTRA TEXT.");
         assertThat(thirdPrompt).contains("CRITICAL: RETURN VALID JSON ONLY. NO EXTRA TEXT.");
-        assertThat(thirdPrompt).contains("CRITICAL: RETURN VALID JSON ONLY. NO EXTRA TEXT.");
+        assertThat(countOccurrences(thirdPrompt, "CRITICAL: RETURN VALID JSON ONLY. NO EXTRA TEXT.")).isEqualTo(2);
 
-        verify(webClient, org.mockito.Mockito.times(3)).post();
-        verify(responseSpec, org.mockito.Mockito.times(3)).bodyToMono(String.class);
+        verify(webClient, times(3)).post();
+        verify(responseSpec, times(3)).bodyToMono(String.class);
     }
 
     @Test
@@ -190,8 +206,8 @@ class OpenAIClientTest {
         assertThat(exception.getMessage()).isEqualTo("AI failed after retries");
         assertThat(exception.getCause()).hasMessage("AI parse error");
 
-        verify(webClient, org.mockito.Mockito.times(3)).post();
-        verify(responseSpec, org.mockito.Mockito.times(3)).bodyToMono(String.class);
+        verify(webClient, times(3)).post();
+        verify(responseSpec, times(3)).bodyToMono(String.class);
     }
 
     @Test
@@ -211,8 +227,8 @@ class OpenAIClientTest {
         assertThat(exception.getMessage()).isEqualTo("AI failed after retries");
         assertThat(exception.getCause()).hasMessage("network failed");
 
-        verify(webClient, org.mockito.Mockito.times(3)).post();
-        verify(responseSpec, org.mockito.Mockito.times(3)).bodyToMono(String.class);
+        verify(webClient, times(3)).post();
+        verify(responseSpec, times(3)).bodyToMono(String.class);
     }
 
     @Test
@@ -235,6 +251,7 @@ class OpenAIClientTest {
 
         assertThat(body.get("model")).isEqualTo("gpt-4o-mini");
         assertThat(body.get("temperature")).isEqualTo(0.3);
+        assertThat(body.get("max_tokens")).isEqualTo(2000);
         assertThat(castMap(body.get("response_format")).get("type")).isEqualTo("json_object");
         assertThat(messages.get(0).get("role")).isEqualTo("system");
         assertThat(messages.get(0).get("content")).isEqualTo("You are an IELTS coach.");
@@ -243,6 +260,23 @@ class OpenAIClientTest {
 
         verify(webClient).post();
         verify(requestBodyUriSpec).uri("/chat/completions");
+    }
+
+    @Test
+    void privateCallRawAI_whenResponseContainsTokenUsage_shouldParseUsageAndStillReturnRawResponse() {
+        String response = openAiResponseWithUsage(toJson(validResponse()));
+        configureSuccessfulWebClient(response);
+
+        String result = invokePrivateMethod(
+                "callRawAI",
+                new Class<?>[]{String.class},
+                "Prompt content."
+        );
+
+        assertThat(result).isEqualTo(response);
+
+        verify(webClient).post();
+        verify(responseSpec).bodyToMono(String.class);
     }
 
     @Test
@@ -452,16 +486,17 @@ class OpenAIClientTest {
                 false
         );
 
-        assertThat(prompt).contains("correctRate");
-        assertThat(prompt).contains("ratio of (correct answers / total questions attempted)");
+        assertThat(prompt).contains("Use correctRate as evidence when relevant");
         assertThat(prompt).contains("weakness-1");
         assertThat(prompt).contains("strength-1");
         assertThat(prompt).contains("task-1");
         assertThat(prompt).contains("WEAKNESSES:");
         assertThat(prompt).contains("STRENGTHS:");
         assertThat(prompt).contains("TASKS:");
-        assertThat(prompt).contains("Return ONLY valid JSON");
-        assertThat(prompt).doesNotContain("overallBandScore: learner's overall writing tutor band score");
+        assertThat(prompt).contains("OUTPUT FORMAT (STRICT JSON ONLY)");
+        assertThat(prompt).contains("Do NOT change ids");
+        assertThat(prompt).contains("Do NOT skip any item");
+        assertThat(prompt).doesNotContain("Use overallBandScore as evidence when relevant");
     }
 
     @Test
@@ -475,13 +510,14 @@ class OpenAIClientTest {
                 true
         );
 
-        assertThat(prompt).contains("overallBandScore");
-        assertThat(prompt).contains("learner's overall writing tutor band score");
-        assertThat(prompt).contains("Low overallBandScore");
+        assertThat(prompt).contains("Use overallBandScore as evidence when relevant");
         assertThat(prompt).contains("weakness-1");
         assertThat(prompt).contains("strength-1");
         assertThat(prompt).contains("task-1");
-        assertThat(prompt).doesNotContain("correctRate: ratio of");
+        assertThat(prompt).contains("WEAKNESSES:");
+        assertThat(prompt).contains("STRENGTHS:");
+        assertThat(prompt).contains("TASKS:");
+        assertThat(prompt).doesNotContain("Use correctRate as evidence when relevant");
     }
 
     private List<AIInput> weaknesses() {
@@ -552,6 +588,15 @@ class OpenAIClientTest {
                 + "\"}}]}";
     }
 
+    private String openAiResponseWithUsage(String contentJson) {
+        return "{\"choices\":[{\"message\":{\"content\":\""
+                + contentJson
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                + "\"}}],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":20,\"total_tokens\":30}}";
+    }
+
     private String toJson(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
@@ -571,7 +616,8 @@ class OpenAIClientTest {
                 .map(Mono::just)
                 .toArray(Mono[]::new);
 
-        when(responseSpec.bodyToMono(String.class)).thenReturn(monos[0], java.util.Arrays.copyOfRange(monos, 1, monos.length));
+        when(responseSpec.bodyToMono(String.class))
+                .thenReturn(monos[0], java.util.Arrays.copyOfRange(monos, 1, monos.length));
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -592,6 +638,18 @@ class OpenAIClientTest {
         List<Map<String, Object>> messages = castList(body.get("messages"));
 
         return messages.get(1).get("content").toString();
+    }
+
+    private int countOccurrences(String text, String target) {
+        int count = 0;
+        int index = 0;
+
+        while ((index = text.indexOf(target, index)) != -1) {
+            count++;
+            index += target.length();
+        }
+
+        return count;
     }
 
     @SuppressWarnings("unchecked")

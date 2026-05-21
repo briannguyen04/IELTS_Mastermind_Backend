@@ -13,6 +13,7 @@ import com.ieltsmastermind.practice.attempt.management.domain.enums.WritingFeedb
 import com.ieltsmastermind.practice.attempt.management.persistence.UserPracticeSubmissionRepository;
 import com.ieltsmastermind.practice.attempt.management.persistence.UserPracticeWritingAnswerRepository;
 import com.ieltsmastermind.practice.attempt.management.persistence.UserPracticeWritingCriterionFeedbackRepository;
+import com.ieltsmastermind.practice.content.management.domain.entity.ListeningPracticeContent;
 import com.ieltsmastermind.practice.content.management.domain.entity.PracticeContent;
 import com.ieltsmastermind.practice.content.management.domain.entity.ReadingPracticeContent;
 import com.ieltsmastermind.practice.content.management.domain.enums.PracticeTaskType;
@@ -27,6 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -103,10 +105,15 @@ class WritingFeedbackServicelmplTest {
         String prompt = promptCaptor.getValue();
 
         assertThat(prompt).contains("You are an IELTS Writing examiner.");
-        assertThat(prompt).contains("Title:\nWriting Task 2");
-        assertThat(prompt).contains("Instruction:\nNormalized instruction");
-        assertThat(prompt).contains("Time spent (seconds):\n600");
-        assertThat(prompt).contains("Student Essays:\nessays-json");
+        assertThat(prompt).contains("Return STRICT JSON ONLY (no extra text):");
+        assertThat(prompt).contains("TASK_2 → use TASK_RESPONSE only");
+        assertThat(prompt).contains("First 4 → STRENGTH");
+        assertThat(prompt).contains("Last 4 → WEAKNESS");
+        assertThat(prompt).contains("MUST be exact sentences from essay");
+        assertThat(prompt).contains("Title: Writing Task 2");
+        assertThat(prompt).contains("Instruction: Normalized instruction");
+        assertThat(prompt).contains("TimeSpent: 600");
+        assertThat(prompt).contains("Essays:\nessays-json");
         assertThat(publicUrlsCaptor.getValue()).containsExactly("https://backend.example.com/images/task.png");
 
         ArgumentCaptor<UserPracticeWritingCriterionFeedback> feedbackCaptor =
@@ -196,6 +203,33 @@ class WritingFeedbackServicelmplTest {
         ReadingPracticeContent content = new ReadingPracticeContent();
         content.setTitle("Reading Practice");
         content.setInstructions("Reading instruction");
+        content.setTask(PracticeTaskType.TASK_1);
+
+        UserPracticeSubmission submission = writingSubmission(submissionId, content);
+        UserPracticeWritingAnswer answer = writingAnswer("answer-1", submission, 1, "Essay.", 1);
+
+        when(userPracticeWritingAnswerRepository.findAllBySubmission_IdOrderByOrderIndexAsc(submissionId))
+                .thenReturn(List.of(answer));
+        when(submissionRepository.findWithContent(submissionId)).thenReturn(Optional.of(submission));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> writingFeedbackService.createWritingFeedback(submissionId)
+        );
+
+        assertThat(exception.getMessage()).isEqualTo("Invalid content type for writing");
+
+        verify(aiService, never()).callAIUnified(anyString(), anyList());
+        verify(userPracticeWritingCriterionFeedbackRepository, never())
+                .save(any(UserPracticeWritingCriterionFeedback.class));
+    }
+
+    @Test
+    void createWritingFeedback_whenContentIsListeningPracticeContent_shouldThrowIllegalArgumentExceptionAndSkipAI() {
+        String submissionId = "submission-1";
+        ListeningPracticeContent content = new ListeningPracticeContent();
+        content.setTitle("Listening Practice");
+        content.setInstructions("Listening instruction");
         content.setTask(PracticeTaskType.TASK_1);
 
         UserPracticeSubmission submission = writingSubmission(submissionId, content);
@@ -539,13 +573,26 @@ class WritingFeedbackServicelmplTest {
                 300
         );
 
-        assertThat(result).contains("Writing Task 1");
-        assertThat(result).contains("Normalized instruction");
-        assertThat(result).contains("300");
-        assertThat(result).contains("essays-json");
-        assertThat(result).contains("TASK_1");
-        assertThat(result).contains("TASK_ACHIEVEMENT");
-        assertThat(result).contains("Return STRICT JSON ONLY");
+        assertThat(result).contains("Title: Writing Task 1");
+        assertThat(result).contains("Instruction: Normalized instruction");
+        assertThat(result).contains("TimeSpent: 300");
+        assertThat(result).contains("Essays:\nessays-json");
+        assertThat(result).contains("Return STRICT JSON ONLY (no extra text):");
+        assertThat(result).contains("TASK_1 → use TASK_ACHIEVEMENT only");
+        assertThat(result).contains("TASK_2 → use TASK_RESPONSE only");
+        assertThat(result).contains("MUST be exact sentences from essay");
+
+        ArgumentCaptor<List> essaysCaptor = ArgumentCaptor.forClass(List.class);
+        verify(aiService).toJson(essaysCaptor.capture());
+
+        List<?> essays = essaysCaptor.getValue();
+        assertThat(essays).hasSize(1);
+
+        Map<?, ?> essay = (Map<?, ?>) essays.get(0);
+        assertThat(essay.get("orderIndex")).isEqualTo(1);
+        assertThat(essay.get("taskType")).isEqualTo("TASK_1");
+        assertThat(essay.get("essayText")).isEqualTo("Task 1 essay.");
+        assertThat(essay.get("wordCount")).isEqualTo(3);
     }
 
     @Test

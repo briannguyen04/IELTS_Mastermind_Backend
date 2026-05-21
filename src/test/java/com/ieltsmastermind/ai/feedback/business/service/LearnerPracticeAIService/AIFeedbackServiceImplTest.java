@@ -3,6 +3,7 @@ package com.ieltsmastermind.ai.feedback.business.service.LearnerPracticeAIServic
 import com.ieltsmastermind.ai.feedback.domain.dto.ListeningFeedbackResponseDto;
 import com.ieltsmastermind.ai.feedback.domain.dto.TaskOutput;
 import com.ieltsmastermind.ai.feedback.domain.dto.WritingFeedbackResponseDto;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -13,6 +14,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +45,11 @@ class AIFeedbackServiceImplTest {
     @InjectMocks
     private AIFeedbackServiceImpl aiFeedbackService;
 
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(aiFeedbackService, "model", "gpt-4o-mini");
+    }
+
     @Test
     void callAI_whenWebClientSucceeds_shouldSendExpectedBodyAndReturnResponse() {
         configureSuccessfulWebClient("ai-response");
@@ -55,6 +64,7 @@ class AIFeedbackServiceImplTest {
         Map<String, Object> body = castMap(bodyCaptor.getValue());
         assertThat(body.get("model")).isEqualTo("gpt-4o-mini");
         assertThat(body.get("temperature")).isEqualTo(0.2);
+        assertThat(body.get("max_tokens")).isEqualTo(4000);
 
         Map<String, Object> responseFormat = castMap(body.get("response_format"));
         assertThat(responseFormat.get("type")).isEqualTo("json_object");
@@ -101,6 +111,12 @@ class AIFeedbackServiceImplTest {
         verify(requestBodyUriSpec).bodyValue(bodyCaptor.capture());
 
         Map<String, Object> body = castMap(bodyCaptor.getValue());
+        assertThat(body.get("model")).isEqualTo("gpt-4o-mini");
+        assertThat(body.get("temperature")).isEqualTo(0.2);
+
+        Map<String, Object> responseFormat = castMap(body.get("response_format"));
+        assertThat(responseFormat.get("type")).isEqualTo("json_object");
+
         List<Map<String, Object>> messages = castList(body.get("messages"));
 
         assertThat(messages).hasSize(2);
@@ -496,6 +512,34 @@ class AIFeedbackServiceImplTest {
         assertThat(result).isEqualTo("Is this correct\u2013");
     }
 
+    @Test
+    void logTokenUsage_whenResponseContainsUsage_shouldPrintTokenCounts() {
+        String response = """
+                {
+                  "usage": {
+                    "prompt_tokens": 120,
+                    "completion_tokens": 80,
+                    "total_tokens": 200
+                  }
+                }
+                """;
+
+        String output = captureSystemOut(() -> aiFeedbackService.logTokenUsage(response));
+
+        assertThat(output).contains("========== TOKEN USAGE ==========");
+        assertThat(output).contains("Request Tokens (Prompt): 120");
+        assertThat(output).contains("Response Tokens (Completion): 80");
+        assertThat(output).contains("Total Tokens: 200");
+        assertThat(output).contains("=================================");
+    }
+
+    @Test
+    void logTokenUsage_whenResponseCannotBeParsed_shouldPrintFallbackMessage() {
+        String output = captureSystemOut(() -> aiFeedbackService.logTokenUsage("not-json"));
+
+        assertThat(output).contains("Cannot parse token usage");
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private void configureSuccessfulWebClient(String responseBody) {
         when(webClient.post()).thenReturn(requestBodyUriSpec);
@@ -514,6 +558,20 @@ class AIFeedbackServiceImplTest {
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.error(exception));
+    }
+
+    private String captureSystemOut(Runnable action) {
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        try (PrintStream capture = new PrintStream(outputStream, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            action.run();
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        return outputStream.toString(StandardCharsets.UTF_8);
     }
 
     private String openAiResponse(String contentJson) {
