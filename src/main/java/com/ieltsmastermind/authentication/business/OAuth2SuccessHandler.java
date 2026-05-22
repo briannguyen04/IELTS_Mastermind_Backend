@@ -3,12 +3,14 @@ package com.ieltsmastermind.authentication.business;
 import com.ieltsmastermind.user.management.domain.entity.User;
 import com.ieltsmastermind.user.management.domain.enums.AuthProvider;
 import com.ieltsmastermind.user.management.persistence.UserRepository;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -23,8 +25,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Autowired
     private JwtUtils jwtUtils;
+
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private SessionManager sessionManager;
 
@@ -36,16 +40,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 
         String registrationId =
-                ((org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken) authentication)
-                        .getAuthorizedClientRegistrationId(); // "google" | "facebook"
+                ((OAuth2AuthenticationToken) authentication)
+                        .getAuthorizedClientRegistrationId();
 
         AuthProvider provider = AuthProvider.valueOf(registrationId.toUpperCase());
 
-        // ===== LẤY DỮ LIỆU TÙY PROVIDER =====
         String rawProviderId;
         String rawFirstName = null;
         String rawLastName = null;
-        String rawEmail = oAuth2User.getAttribute("email"); // Facebook có thể null
+        String rawEmail = oAuth2User.getAttribute("email");
 
         if (provider == AuthProvider.GOOGLE) {
             rawProviderId = oAuth2User.getAttribute("sub");
@@ -59,29 +62,26 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             throw new IllegalStateException("Unsupported provider: " + provider);
         }
 
-        // ===== FINAL VARIABLES FOR LAMBDA =====
         final String providerId = rawProviderId;
         final String firstName = rawFirstName;
         final String lastName = rawLastName;
         final String email = rawEmail;
 
-        // ===== TÌM HOẶC TẠO USER =====
         User user = userRepository
                 .findByProviderAndProviderId(provider, providerId)
                 .orElseGet(() -> {
                     User newUser = new User();
                     newUser.setProvider(provider);
                     newUser.setProviderId(providerId);
-                    newUser.setEmail(email); // có thể null
+                    newUser.setEmail(email);
                     newUser.setFirstname(firstName != null ? firstName : "User");
                     newUser.setLastname(lastName != null ? lastName : "Social");
                     newUser.setRole("Learner");
-                    newUser.setPasswordHash(null); // OAuth user không có password
+                    newUser.setPasswordHash(null);
                     newUser.setIsActive(true);
                     return userRepository.save(newUser);
                 });
 
-        // ===== TẠO JWT =====
         String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
 
         sessionManager.addSession(
@@ -91,25 +91,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 jwtUtils.getExpirationMillis()
         );
 
-        int maxAgeSeconds = (int) (jwtUtils.getExpirationMillis() / 1000);
+        long maxAgeSeconds = jwtUtils.getExpirationMillis() / 1000;
 
-        Cookie cookie = new Cookie("jwt", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true); // đổi thành true khi deploy HTTPS
-        cookie.setPath("/");
-        cookie.setMaxAge(maxAgeSeconds);
+        ResponseCookie cookie = ResponseCookie.from("jwt", token)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(maxAgeSeconds)
+                .build();
 
-        response.addCookie(cookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        // String cookieHeader = String.format(
-        //     "jwt=%s; Max-Age=%d; Path=/; HttpOnly; Secure; SameSite=None",
-        //     token,
-        //     maxAgeSeconds
-        // );
-
-        // response.setHeader("Set-Cookie", cookieHeader);
-
-        // ===== REDIRECT VỀ FRONTEND =====
         response.sendRedirect(frontendUrl + "/oauth2/callback");
     }
 }
